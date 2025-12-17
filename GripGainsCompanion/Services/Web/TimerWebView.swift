@@ -20,8 +20,9 @@ struct TimerWebView: UIViewRepresentable {
 
         let contentController = config.userContentController
 
-        // Add message handler for JS -> Swift communication
+        // Add message handlers for JS -> Swift communication
         contentController.add(coordinator, name: "buttonState")
+        contentController.add(coordinator, name: "targetWeight")
 
         // Inject observer script on document end
         let observerScript = WKUserScript(
@@ -30,6 +31,14 @@ struct TimerWebView: UIViewRepresentable {
             forMainFrameOnly: true
         )
         contentController.addUserScript(observerScript)
+
+        // Inject target weight observer script
+        let targetWeightScript = WKUserScript(
+            source: JavaScriptBridge.targetWeightObserverScript,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(targetWeightScript)
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = coordinator
@@ -48,7 +57,8 @@ struct TimerWebView: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ uiView: WKWebView, coordinator: ()) {
-        // Clean up message handler to avoid memory leaks
+        // Clean up message handlers to avoid memory leaks
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "buttonState")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "targetWeight")
     }
 }

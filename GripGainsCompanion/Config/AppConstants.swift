@@ -8,6 +8,12 @@ struct AppConstants {
     static let failThreshold: Float = 1.0
     static let calibrationDuration: TimeInterval = 5.0
 
+    // MARK: - Target Weight
+    static let defaultWeightTolerance: Float = 0.5  // kg
+    static let minWeightTolerance: Float = 0.1      // kg
+    static let maxWeightTolerance: Float = 1.0      // kg
+    static let offTargetFeedbackInterval: TimeInterval = 1.0  // seconds (throttle)
+
     // MARK: - Web
     static let gripGainsURL = URL(string: "https://gripgains.ca/timer")!
 

@@ -11,13 +11,18 @@ struct ContentView: View {
     @State private var skippedDevice = false
     @State private var showSettings = false
     @State private var cancellables = Set<AnyCancellable>()
+    @State private var scrapedTargetWeight: Float?
     @AppStorage("useLbs") private var useLbs = false
     @AppStorage("enableHaptics") private var enableHaptics = true
+    @AppStorage("enableTargetSound") private var enableTargetSound = true
     @AppStorage("showStatusBar") private var showStatusBar = true
     @AppStorage("fullScreen") private var fullScreen = true
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
     @AppStorage("settingsButtonX") private var settingsButtonX: Double = -1
     @AppStorage("settingsButtonY") private var settingsButtonY: Double = -1
+    @AppStorage("useManualTarget") private var useManualTarget = false
+    @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = 20.0
+    @AppStorage("weightTolerance") private var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
     @State private var dragOffset: CGSize = .zero
 
     private let webCoordinator = WebViewCoordinator()
@@ -86,6 +91,9 @@ struct ContentView: View {
                     waitingForSamples: progressorHandler.waitingForSamples,
                     calibrationTimeRemaining: progressorHandler.calibrationTimeRemaining,
                     weightMedian: progressorHandler.weightMedian,
+                    targetWeight: effectiveTargetWeight,
+                    isOffTarget: progressorHandler.isOffTarget,
+                    offTargetDirection: progressorHandler.offTargetDirection,
                     useLbs: useLbs,
                     theme: ForceBarTheme(rawValue: forceBarTheme) ?? .system,
                     onUnitToggle: { useLbs.toggle() },
@@ -149,10 +157,32 @@ struct ContentView: View {
                 onConnectDevice: {
                     showSettings = false
                     skippedDevice = false
-                }
+                },
+                scrapedTargetWeight: scrapedTargetWeight
             )
         }
+        .onChange(of: useManualTarget) { _, _ in updateTargetWeight() }
+        .onChange(of: manualTargetWeight) { _, _ in updateTargetWeight() }
+        .onChange(of: scrapedTargetWeight) { _, _ in updateTargetWeight() }
+        .onChange(of: weightTolerance) { _, newValue in
+            progressorHandler.weightTolerance = Float(newValue)
+        }
         .preferredColorScheme(preferredScheme)
+    }
+
+    // MARK: - Target Weight
+
+    /// The effective target weight to use (manual or scraped)
+    private var effectiveTargetWeight: Float? {
+        if useManualTarget {
+            return Float(manualTargetWeight)
+        }
+        return scrapedTargetWeight
+    }
+
+    /// Update the handler's target weight based on current settings
+    private func updateTargetWeight() {
+        progressorHandler.targetWeight = effectiveTargetWeight
     }
 
     // MARK: - Combine Subscriptions
@@ -161,6 +191,11 @@ struct ContentView: View {
         // WebView button state
         webCoordinator.onButtonStateChanged = { enabled in
             isFailButtonEnabled = enabled
+        }
+
+        // WebView target weight scraping
+        webCoordinator.onTargetWeightChanged = { weight in
+            scrapedTargetWeight = weight
         }
 
         // BLE force samples -> Handler
@@ -189,6 +224,36 @@ struct ContentView: View {
                 }
             }
             .store(in: &cancellables)
+
+        // Handler off-target changed -> Feedback
+        progressorHandler.offTargetChanged
+            .receive(on: DispatchQueue.main)
+            .sink { isOffTarget, direction in
+                guard isOffTarget else { return }
+
+                // Haptic feedback
+                if UserDefaults.standard.object(forKey: "enableHaptics") as? Bool ?? true {
+                    HapticManager.warning()
+                }
+
+                // Sound feedback
+                if UserDefaults.standard.object(forKey: "enableTargetSound") as? Bool ?? true {
+                    if let dir = direction {
+                        if dir > 0 {
+                            SoundManager.playHighTone()  // Too heavy
+                        } else {
+                            SoundManager.playLowTone()   // Too light
+                        }
+                    } else {
+                        SoundManager.playWarningTone()
+                    }
+                }
+            }
+            .store(in: &cancellables)
+
+        // Initialize target weight and tolerance
+        updateTargetWeight()
+        progressorHandler.weightTolerance = Float(weightTolerance)
     }
 }
 

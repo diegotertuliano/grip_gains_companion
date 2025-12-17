@@ -53,4 +53,65 @@ enum JavaScriptBridge {
             }
         })();
     """
+
+    /// Scrape target weight from the session preview header
+    static let scrapeTargetWeight = """
+        (function() {
+            const elements = document.querySelectorAll('.session-preview-header .text-white');
+            for (const elem of elements) {
+                const text = elem.textContent.trim();
+                if (text.includes('kg') || text.includes('lbs') || text.includes('lb')) {
+                    window.webkit.messageHandlers.targetWeight.postMessage(text);
+                    return;
+                }
+            }
+            window.webkit.messageHandlers.targetWeight.postMessage(null);
+        })();
+    """
+
+    /// MutationObserver script for real-time target weight changes
+    static let targetWeightObserverScript = """
+        (function() {
+            function scrapeAndSendWeight() {
+                const elements = document.querySelectorAll('.session-preview-header .text-white');
+                for (const elem of elements) {
+                    const text = elem.textContent.trim();
+                    if (text.includes('kg') || text.includes('lbs') || text.includes('lb')) {
+                        window.webkit.messageHandlers.targetWeight.postMessage(text);
+                        return;
+                    }
+                }
+                window.webkit.messageHandlers.targetWeight.postMessage(null);
+            }
+
+            function setupTargetWeightObserver() {
+                const previewHeader = document.querySelector('.session-preview-header');
+                if (!previewHeader) {
+                    // Preview not ready, retry in 500ms
+                    setTimeout(setupTargetWeightObserver, 500);
+                    return;
+                }
+
+                const observer = new MutationObserver(function() {
+                    scrapeAndSendWeight();
+                });
+
+                // Watch for changes in the preview header
+                observer.observe(previewHeader, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true
+                });
+
+                // Send initial value
+                scrapeAndSendWeight();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupTargetWeightObserver);
+            } else {
+                setupTargetWeightObserver();
+            }
+        })();
+    """
 }

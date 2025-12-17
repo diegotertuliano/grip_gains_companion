@@ -8,6 +8,9 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     /// Callback when button state changes
     var onButtonStateChanged: ((Bool) -> Void)?
 
+    /// Callback when target weight changes (scraped from website)
+    var onTargetWeightChanged: ((Float?) -> Void)?
+
     override init() {
         super.init()
     }
@@ -34,9 +37,36 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
                 }
             }
 
+        case "targetWeight":
+            DispatchQueue.main.async { [weak self] in
+                if let weightString = message.body as? String {
+                    self?.onTargetWeightChanged?(self?.parseWeight(weightString))
+                } else {
+                    self?.onTargetWeightChanged?(nil)
+                }
+            }
+
         default:
             break
         }
+    }
+
+    /// Parse weight string like "20.0 kg" or "44 lbs" to Float (always returns kg)
+    private func parseWeight(_ string: String) -> Float? {
+        let lowercased = string.lowercased()
+        let isLbs = lowercased.contains("lbs") || lowercased.contains("lb")
+
+        // Remove unit and whitespace, then parse
+        let cleaned = lowercased
+            .replacingOccurrences(of: "lbs", with: "")
+            .replacingOccurrences(of: "lb", with: "")
+            .replacingOccurrences(of: "kg", with: "")
+            .trimmingCharacters(in: .whitespaces)
+
+        guard let value = Float(cleaned) else { return nil }
+
+        // Convert lbs to kg if needed (internal storage is always kg)
+        return isLbs ? value / AppConstants.kgToLbs : value
     }
 
     // MARK: - Public Methods
@@ -90,6 +120,23 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
             let date = Date(timeIntervalSince1970: 0)
             await dataStore.removeData(ofTypes: dataTypes, modifiedSince: date)
             webView?.reload()
+        }
+    }
+
+    /// Manually request target weight scrape from the page
+    func scrapeTargetWeight() {
+        Task { @MainActor in
+            await scrapeTargetWeightAsync()
+        }
+    }
+
+    /// Manually request target weight scrape from the page (async version)
+    @MainActor
+    func scrapeTargetWeightAsync() async {
+        do {
+            _ = try await webView?.evaluateJavaScript(JavaScriptBridge.scrapeTargetWeight)
+        } catch {
+            Log.app.error("Error scraping target weight: \(error.localizedDescription)")
         }
     }
 }

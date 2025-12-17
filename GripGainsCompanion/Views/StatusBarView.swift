@@ -10,7 +10,6 @@ struct StatusBarView: View {
 
     @Environment(\.colorScheme) private var colorScheme
 
-    // Legacy initializer for backward compatibility
     init(
         force: Float,
         engaged: Bool,
@@ -18,6 +17,9 @@ struct StatusBarView: View {
         waitingForSamples: Bool,
         calibrationTimeRemaining: TimeInterval,
         weightMedian: Float?,
+        targetWeight: Float? = nil,
+        isOffTarget: Bool = false,
+        offTargetDirection: Float? = nil,
         useLbs: Bool,
         theme: ForceBarTheme = .system,
         onUnitToggle: @escaping () -> Void,
@@ -29,7 +31,10 @@ struct StatusBarView: View {
             calibrating: calibrating,
             waitingForSamples: waitingForSamples,
             calibrationTimeRemaining: calibrationTimeRemaining,
-            weightMedian: weightMedian
+            weightMedian: weightMedian,
+            targetWeight: targetWeight,
+            isOffTarget: isOffTarget,
+            offTargetDirection: offTargetDirection
         )
         self.useLbs = useLbs
         self.theme = theme
@@ -87,9 +92,35 @@ struct StatusBarView: View {
     @ViewBuilder
     private var weightDisplay: some View {
         if state.showWeight, let median = state.weightMedian {
-            Text("⚖ \(WeightFormatter.format(median, useLbs: useLbs))")
-                .font(.caption)
-                .foregroundColor(secondaryTextColor)
+            HStack(spacing: 4) {
+                Text("⚖ \(WeightFormatter.format(median, useLbs: useLbs))")
+                    .font(.caption)
+                    .foregroundColor(secondaryTextColor)
+
+                // Show target weight if set
+                if let target = state.targetWeight {
+                    Text("→ \(WeightFormatter.format(target, useLbs: useLbs))")
+                        .font(.caption)
+                        .foregroundColor(secondaryTextColor.opacity(0.7))
+                }
+            }
+        } else if state.engaged {
+            // During gripping, show target weight and off-target indicator
+            if let target = state.targetWeight {
+                HStack(spacing: 4) {
+                    Text("Target: \(WeightFormatter.format(target, useLbs: useLbs))")
+                        .font(.caption)
+                        .foregroundColor(state.isOffTarget ? .red : secondaryTextColor)
+
+                    // Show difference when off target
+                    if state.isOffTarget, let diff = state.formattedDifference(useLbs: useLbs) {
+                        Text("(\(diff))")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.red)
+                    }
+                }
+            }
         }
     }
 
@@ -130,21 +161,58 @@ struct StatusBarView: View {
         calibrating: false,
         waitingForSamples: false,
         calibrationTimeRemaining: 0,
-        weightMedian: 2.1,
+        weightMedian: 20.0,
+        targetWeight: 20.0,
         useLbs: false,
         onUnitToggle: {},
         onSettingsTap: {}
     )
 }
 
-#Preview("Gripping") {
+#Preview("Gripping on target") {
     StatusBarView(
         force: 25.3,
         engaged: true,
         calibrating: false,
         waitingForSamples: false,
         calibrationTimeRemaining: 0,
-        weightMedian: 2.1,
+        weightMedian: nil,
+        targetWeight: 20.0,
+        isOffTarget: false,
+        useLbs: false,
+        onUnitToggle: {},
+        onSettingsTap: {}
+    )
+}
+
+#Preview("Gripping off target (heavy)") {
+    StatusBarView(
+        force: 25.3,
+        engaged: true,
+        calibrating: false,
+        waitingForSamples: false,
+        calibrationTimeRemaining: 0,
+        weightMedian: nil,
+        targetWeight: 20.0,
+        isOffTarget: true,
+        offTargetDirection: 0.7,
+        useLbs: false,
+        onUnitToggle: {},
+        onSettingsTap: {}
+    )
+}
+
+#Preview("Gripping off target (light)") {
+    StatusBarView(
+        force: 25.3,
+        engaged: true,
+        calibrating: false,
+        waitingForSamples: false,
+        calibrationTimeRemaining: 0,
+        weightMedian: nil,
+        targetWeight: 20.0,
+        isOffTarget: true,
+        offTargetDirection: -0.6,
         useLbs: false,
         onUnitToggle: {},
         onSettingsTap: {}

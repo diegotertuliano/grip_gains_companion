@@ -46,6 +46,23 @@ class ProgressorHandler: ObservableObject {
     @Published private(set) var calibrationTimeRemaining: TimeInterval = AppConstants.calibrationDuration
     @Published private(set) var weightMedian: Float?
 
+    // MARK: - Target Weight State
+
+    /// Target weight from website or manual input (in kg)
+    var targetWeight: Float?
+
+    /// Tolerance for off-target detection (in kg)
+    var weightTolerance: Float = AppConstants.defaultWeightTolerance
+
+    /// Whether current weight is off target (only valid during gripping)
+    @Published private(set) var isOffTarget: Bool = false
+
+    /// Direction of off-target: positive = too heavy, negative = too light, nil = on target
+    @Published private(set) var offTargetDirection: Float?
+
+    /// Timer for continuous off-target feedback
+    private var offTargetTimer: Timer?
+
     // MARK: - Combine Publishers
 
     /// Publishes when calibration completes
@@ -59,6 +76,9 @@ class ProgressorHandler: ObservableObject {
 
     /// Publishes force updates (force, engaged, weightMedian, weightCalibrationEngaged)
     let forceUpdated = PassthroughSubject<(Float, Bool, Float?, Bool), Never>()
+
+    /// Publishes when off-target state changes during gripping (isOffTarget, direction)
+    let offTargetChanged = PassthroughSubject<(Bool, Float?), Never>()
 
     // MARK: - External Input
 
@@ -83,10 +103,13 @@ class ProgressorHandler: ObservableObject {
 
     /// Reset handler state for a new session
     func reset() {
+        stopOffTargetTimer()
         state = .waitingForSamples
         currentForce = 0.0
         calibrationTimeRemaining = AppConstants.calibrationDuration
         weightMedian = nil
+        isOffTarget = false
+        offTargetDirection = nil
     }
 
     // MARK: - State Machine Logic
@@ -122,12 +145,16 @@ class ProgressorHandler: ObservableObject {
 
             if taredWeight < AppConstants.failThreshold {
                 // Grip failed
+                stopOffTargetTimer()
                 let duration = Date().timeIntervalSince(startTime)
                 state = .idle(baseline: baseline)
+                isOffTarget = false
+                offTargetDirection = nil
                 gripFailed.send()
                 gripDisengaged.send((duration, samples))
             } else {
                 state = .gripping(baseline: baseline, startTime: startTime, samples: samples)
+                checkOffTarget(taredWeight: taredWeight)
             }
             publishForceUpdate()
 
@@ -198,6 +225,62 @@ class ProgressorHandler: ObservableObject {
             isWeightCalibrationEngaged = false
         }
         forceUpdated.send((currentForce, engaged, weightMedian, isWeightCalibrationEngaged))
+    }
+
+    // MARK: - Target Weight Checking
+
+    /// Check if current weight is off target during gripping
+    private func checkOffTarget(taredWeight: Float) {
+        guard let target = targetWeight else {
+            // No target set, reset off-target state
+            stopOffTargetTimer()
+            if isOffTarget {
+                isOffTarget = false
+                offTargetDirection = nil
+                offTargetChanged.send((false, nil))
+            }
+            return
+        }
+
+        let difference = taredWeight - target
+        let wasOffTarget = isOffTarget
+
+        if abs(difference) >= weightTolerance {
+            isOffTarget = true
+            offTargetDirection = difference
+            if !wasOffTarget {
+                // Just went off target - start continuous feedback
+                startOffTargetTimer()
+            }
+        } else {
+            stopOffTargetTimer()
+            isOffTarget = false
+            offTargetDirection = nil
+            if wasOffTarget {
+                // Just came back on target
+                offTargetChanged.send((false, nil))
+            }
+        }
+    }
+
+    // MARK: - Off-Target Timer
+
+    /// Start repeating timer for continuous off-target feedback (every 0.5s)
+    private func startOffTargetTimer() {
+        stopOffTargetTimer()
+        // Fire immediately
+        offTargetChanged.send((true, offTargetDirection))
+        // Then repeat every 0.5 seconds
+        offTargetTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self = self, self.isOffTarget else { return }
+            self.offTargetChanged.send((true, self.offTargetDirection))
+        }
+    }
+
+    /// Stop the off-target feedback timer
+    private func stopOffTargetTimer() {
+        offTargetTimer?.invalidate()
+        offTargetTimer = nil
     }
 
     // MARK: - Utilities

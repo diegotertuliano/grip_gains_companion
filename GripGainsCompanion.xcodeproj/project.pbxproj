@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 117 /* Assets.xcassets */; };
 		001 /* GripGainsCompanion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101 /* GripGainsCompanion.swift */; };
 		002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 102 /* ContentView.swift */; };
 		003 /* StatusBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103 /* StatusBarView.swift */; };
@@ -21,6 +20,8 @@
 		013 /* ProgressorDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113 /* ProgressorDevice.swift */; };
 		014 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115 /* DeviceScannerView.swift */; };
 		015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116 /* SettingsView.swift */; };
+		016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 117 /* Assets.xcassets */; };
+		7E02DCD62EF23D4000C60B3B /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E02DCD52EF23D4000C60B3B /* SoundManager.swift */; };
 		7EC12C912EF1195800A9D66C /* WeightFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8F2EF1195800A9D66C /* WeightFormatter.swift */; };
 		7EC12C922EF1195800A9D66C /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8E2EF1195800A9D66C /* Log.swift */; };
 		7EC12C932EF1195800A9D66C /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8D2EF1195800A9D66C /* HapticManager.swift */; };
@@ -43,11 +44,12 @@
 		114 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		115 /* DeviceScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerView.swift; sourceTree = "<group>"; };
 		116 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		117 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7E02DCD52EF23D4000C60B3B /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
 		7EC12C8D2EF1195800A9D66C /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		7EC12C8E2EF1195800A9D66C /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		7EC12C8F2EF1195800A9D66C /* WeightFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightFormatter.swift; sourceTree = "<group>"; };
 		7EC12C942EF1196000A9D66C /* StatusBarState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarState.swift; sourceTree = "<group>"; };
-		117 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,6 +154,7 @@
 		7EC12C902EF1195800A9D66C /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				7E02DCD52EF23D4000C60B3B /* SoundManager.swift */,
 				7EC12C8D2EF1195800A9D66C /* HapticManager.swift */,
 				7EC12C8E2EF1195800A9D66C /* Log.swift */,
 				7EC12C8F2EF1195800A9D66C /* WeightFormatter.swift */,
@@ -245,6 +248,7 @@
 				7EC12C952EF1196000A9D66C /* StatusBarState.swift in Sources */,
 				014 /* DeviceScannerView.swift in Sources */,
 				015 /* SettingsView.swift in Sources */,
+				7E02DCD62EF23D4000C60B3B /* SoundManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
