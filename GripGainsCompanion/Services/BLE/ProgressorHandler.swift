@@ -154,7 +154,7 @@ class ProgressorHandler: ObservableObject {
                 gripDisengaged.send((duration, samples))
             } else {
                 state = .gripping(baseline: baseline, startTime: startTime, samples: samples)
-                checkOffTarget(taredWeight: taredWeight)
+                checkOffTarget(rawWeight: rawWeight)
             }
             publishForceUpdate()
 
@@ -230,7 +230,7 @@ class ProgressorHandler: ObservableObject {
     // MARK: - Target Weight Checking
 
     /// Check if current weight is off target during gripping
-    private func checkOffTarget(taredWeight: Float) {
+    private func checkOffTarget(rawWeight: Float) {
         guard let target = targetWeight else {
             // No target set, reset off-target state
             stopOffTargetTimer()
@@ -242,7 +242,7 @@ class ProgressorHandler: ObservableObject {
             return
         }
 
-        let difference = taredWeight - target
+        let difference = rawWeight - target
         let wasOffTarget = isOffTarget
 
         if abs(difference) >= weightTolerance {
