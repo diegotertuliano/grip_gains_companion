@@ -4,6 +4,19 @@ import AudioToolbox
 /// Manages audio feedback for target weight alerts
 enum SoundManager {
     private static var toneGenerator: ToneGenerator?
+    private static var audioSessionConfigured = false
+
+    private static func configureAudioSession() {
+        guard !audioSessionConfigured else { return }
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, options: [.mixWithOthers])
+            try audioSession.setActive(true)
+            audioSessionConfigured = true
+        } catch {
+            Log.app.error("Failed to configure audio session: \(error.localizedDescription)")
+        }
+    }
 
     /// Play a warning tone (medium pitch) for general off-target alert
     static func playWarningTone() {
@@ -21,6 +34,8 @@ enum SoundManager {
     }
 
     private static func playTone(frequency: Double, duration: Double) {
+        configureAudioSession()
+
         // Create a new generator for each tone to allow overlapping sounds
         let generator = ToneGenerator()
         generator.play(frequency: frequency, duration: duration)
