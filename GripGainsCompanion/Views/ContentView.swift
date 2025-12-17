@@ -62,6 +62,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
             setupSubscriptions()
         }
         .onChange(of: bluetoothManager.connectionState) { _, newState in
