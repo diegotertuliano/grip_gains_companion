@@ -7,6 +7,7 @@ struct ForceGraphView: View {
     let useLbs: Bool
     let windowSeconds: Int  // 0 = entire session
     let targetWeight: Float?
+    let tolerance: Float?  // Optional tolerance in same units as targetWeight (kg)
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -30,6 +31,15 @@ struct ForceGraphView: View {
 
     var body: some View {
         Chart {
+            // Tolerance band (if target and tolerance are set)
+            if let target = targetWeight, let tol = tolerance {
+                RectangleMark(
+                    yStart: .value("Lower", displayForce(target - tol)),
+                    yEnd: .value("Upper", displayForce(target + tol))
+                )
+                .foregroundStyle(Color.gray.opacity(0.4))
+            }
+
             // Force line
             ForEach(Array(visibleHistory.enumerated()), id: \.offset) { _, sample in
                 LineMark(
@@ -73,22 +83,21 @@ struct ForceGraphView: View {
     /// Calculate Y-axis domain based on visible data and target
     private var yAxisDomain: ClosedRange<Double> {
         let forces = visibleHistory.map { displayForce($0.force) }
-        let minForce = forces.min() ?? 0
-        let maxForce = forces.max() ?? 10
+        var lower = forces.min() ?? 0
+        var upper = forces.max() ?? 10
 
-        var lower = min(minForce, 0)
-        var upper = max(maxForce, 10)
-
-        // Include target weight in range if set
+        // Include target weight and tolerance band in range if set
         if let target = targetWeight {
             let targetDisplay = displayForce(target)
-            lower = min(lower, targetDisplay - 5)
-            upper = max(upper, targetDisplay + 5)
+            let tolDisplay = tolerance != nil ? displayForce(tolerance!) : 0
+            lower = min(lower, targetDisplay - tolDisplay)
+            upper = max(upper, targetDisplay + tolDisplay)
         }
 
-        // Add some padding
-        let padding = (upper - lower) * 0.1
-        return (lower - padding)...(upper + padding)
+        // Add padding (at least 2 units to give breathing room)
+        let range = upper - lower
+        let padding = max(range * 0.15, 2.0)
+        return max(0, lower - padding)...(upper + padding)
     }
 }
 
@@ -102,7 +111,8 @@ struct ForceGraphView: View {
         forceHistory: history,
         useLbs: false,
         windowSeconds: 10,
-        targetWeight: 20
+        targetWeight: 20,
+        tolerance: 0.5
     )
 }
 
@@ -111,6 +121,7 @@ struct ForceGraphView: View {
         forceHistory: [],
         useLbs: false,
         windowSeconds: 10,
-        targetWeight: nil
+        targetWeight: nil,
+        tolerance: nil
     )
 }

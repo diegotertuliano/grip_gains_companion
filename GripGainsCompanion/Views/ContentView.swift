@@ -145,7 +145,8 @@ struct ContentView: View {
             forceHistory: progressorHandler.forceHistory,
             useLbs: useLbs,
             windowSeconds: forceGraphWindow,
-            targetWeight: effectiveTargetWeight
+            targetWeight: effectiveTargetWeight,
+            tolerance: Float(weightTolerance)
         )
     }
 
