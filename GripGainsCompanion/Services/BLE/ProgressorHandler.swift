@@ -50,6 +50,9 @@ class ProgressorHandler: ObservableObject {
     @Published private(set) var sessionMean: Float?
     @Published private(set) var sessionStdDev: Float?
 
+    // Force history for graph (timestamp, force in kg)
+    @Published private(set) var forceHistory: [(timestamp: Date, force: Float)] = []
+
     // MARK: - Target Weight State
 
     /// Target weight from website or manual input (in kg)
@@ -110,6 +113,7 @@ class ProgressorHandler: ObservableObject {
     func processSample(_ rawWeight: Float) {
         DispatchQueue.main.async { [self] in
             currentForce = rawWeight
+            forceHistory.append((timestamp: Date(), force: rawWeight))
             processStateTransition(rawWeight: rawWeight)
         }
     }
@@ -125,6 +129,7 @@ class ProgressorHandler: ObservableObject {
         offTargetDirection = nil
         sessionMean = nil
         sessionStdDev = nil
+        forceHistory = []
     }
 
     // MARK: - State Machine Logic
@@ -133,6 +138,7 @@ class ProgressorHandler: ObservableObject {
         switch state {
         case .waitingForSamples:
             // First sample received - start calibration or skip to idle
+            forceHistory = []  // Clear history on new session
             if enableCalibration {
                 state = .calibrating(startTime: Date(), samples: [rawWeight])
                 calibrationTimeRemaining = AppConstants.calibrationDuration

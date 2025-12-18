@@ -31,6 +31,8 @@ struct SettingsView: View {
     @AppStorage("showGripStats") private var showGripStats = true
     @AppStorage("showStatusBar") private var showStatusBar = true
     @AppStorage("expandedForceBar") private var expandedForceBar = false
+    @AppStorage("showForceGraph") private var showForceGraph = false
+    @AppStorage("forceGraphWindow") private var forceGraphWindow = 10  // seconds, 0 = entire session
     @AppStorage("fullScreen") private var fullScreen = true
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
     @AppStorage("enableTargetWeight") private var enableTargetWeight = true
@@ -237,6 +239,16 @@ struct SettingsView: View {
                 Section("Display") {
                     Toggle("Show Force Bar", isOn: $showStatusBar)
                     Toggle("Expanded Force Bar", isOn: $expandedForceBar)
+                    Toggle("Force Graph", isOn: $showForceGraph)
+                    if showForceGraph {
+                        Picker("Graph Window", selection: $forceGraphWindow) {
+                            Text("5s").tag(5)
+                            Text("10s").tag(10)
+                            Text("30s").tag(30)
+                            Text("All").tag(0)
+                        }
+                        .pickerStyle(.segmented)
+                    }
                     Toggle("Full Screen", isOn: $fullScreen)
                     Picker("Force Bar Theme", selection: $forceBarTheme) {
                         ForEach(ForceBarTheme.allCases, id: \.rawValue) { theme in

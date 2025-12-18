@@ -52,6 +52,8 @@ struct ContentView: View {
     @AppStorage("enableTargetSound") private var enableTargetSound = true
     @AppStorage("showStatusBar") private var showStatusBar = true
     @AppStorage("expandedForceBar") private var expandedForceBar = false
+    @AppStorage("showForceGraph") private var showForceGraph = false
+    @AppStorage("forceGraphWindow") private var forceGraphWindow = 10
     @AppStorage("fullScreen") private var fullScreen = true
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
     @AppStorage("settingsButtonX") private var settingsButtonX: Double = -1
@@ -130,9 +132,21 @@ struct ContentView: View {
             if isConnected && showStatusBar {
                 statusBarView
             }
+            if isConnected && showForceGraph {
+                forceGraphView
+            }
             TimerWebView(coordinator: webCoordinator)
                 .ignoresSafeArea(edges: .bottom)
         }
+    }
+
+    private var forceGraphView: some View {
+        ForceGraphView(
+            forceHistory: progressorHandler.forceHistory,
+            useLbs: useLbs,
+            windowSeconds: forceGraphWindow,
+            targetWeight: effectiveTargetWeight
+        )
     }
 
     private var settingsSheet: some View {
