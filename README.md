@@ -8,6 +8,7 @@ An unofficial iOS companion app for [gripgains.ca](https://gripgains.ca/) that a
 - **Auto-click fail button** - When connected to a Tindeq Progressor, automatically clicks the fail button when your grip fails
 - **Measure actual weight** - Verify your load with the Tindeq before inputting on the website (ensures consistency when switching setups or using cable machines where indicated weight may differ from actual load)
 - **Target weight feedback** - Set a target weight and get visual, audio, and haptic feedback when you reach it
+- **Real-time force graph** - Visualize your grip force over time with a live chart
 
 ## Requirements
 
