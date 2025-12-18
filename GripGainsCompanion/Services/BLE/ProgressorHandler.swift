@@ -193,6 +193,7 @@ class ProgressorHandler: ObservableObject {
                 stopOffTargetTimer()
                 let duration = Date().timeIntervalSince(startTime)
                 state = .idle(baseline: baseline)
+                canEngage = false
                 isOffTarget = false
                 offTargetDirection = nil
                 gripFailed.send()
