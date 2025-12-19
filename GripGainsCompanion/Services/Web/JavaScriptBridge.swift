@@ -262,7 +262,7 @@ enum JavaScriptBridge {
             // Inject CSS to hide the overlay while we interact with it
             const style = document.createElement('style');
             style.id = 'auto-select-hide';
-            style.textContent = '.weight-picker-overlay { opacity: 0 !important; pointer-events: none !important; }';
+            style.textContent = '.weight-picker-overlay { display: none !important; }';
             document.head.appendChild(style);
 
             // Click to open the overlay
@@ -298,8 +298,8 @@ enum JavaScriptBridge {
                     }
                 });
 
-                // Temporarily enable pointer events to click
-                style.textContent = '.weight-picker-overlay { opacity: 0 !important; }';
+                // Temporarily switch to opacity-based hiding to allow clicking
+                style.textContent = '.weight-picker-overlay { opacity: 0 !important; pointer-events: auto !important; }';
 
                 // Click the closest option (Vue handles the rest)
                 if (closest) closest.click();
@@ -330,9 +330,7 @@ enum JavaScriptBridge {
                 [class*="overlay"],
                 [class*="modal"],
                 [class*="picker"] > div:not(button) {
-                    opacity: 0 !important;
-                    pointer-events: none !important;
-                    visibility: hidden !important;
+                    display: none !important;
                 }
             `;
             document.head.appendChild(style);
@@ -355,6 +353,19 @@ enum JavaScriptBridge {
                     }
                 });
 
+                // Temporarily switch to opacity-based hiding to allow clicking
+                style.textContent = `
+                    .weight-picker-overlay,
+                    .modal,
+                    .modal-backdrop,
+                    [class*="overlay"],
+                    [class*="modal"],
+                    [class*="picker"] > div:not(button) {
+                        opacity: 0 !important;
+                        pointer-events: auto !important;
+                    }
+                `;
+
                 // Close picker by clicking the X button or clicking outside
                 const closeBtn = document.querySelector('.modal-close, [class*="close"], button[aria-label="Close"]');
                 if (closeBtn) {
@@ -364,7 +375,7 @@ enum JavaScriptBridge {
                     button.click();
                 }
 
-                // Remove the hiding style after a brief delay
+                // Remove the hiding style after overlay closes
                 setTimeout(() => style.remove(), 150);
 
                 // Send weights with unit info
