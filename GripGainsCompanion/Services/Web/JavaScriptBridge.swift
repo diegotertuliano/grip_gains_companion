@@ -183,6 +183,12 @@ enum JavaScriptBridge {
                 if (!foundDuration) {
                     window.webkit.messageHandlers.targetDuration.postMessage(null);
                 }
+
+                // Scrape gripper type and side from purple text elements
+                const purpleElements = document.querySelectorAll('.session-preview-header .text-purple-200');
+                const gripper = purpleElements.length > 0 ? purpleElements[0].textContent.trim() : null;
+                const side = purpleElements.length > 1 ? purpleElements[1].textContent.trim() : null;
+                window.webkit.messageHandlers.sessionInfo.postMessage({ gripper: gripper, side: side });
             }
 
             function setupTargetObserver() {
@@ -212,6 +218,32 @@ enum JavaScriptBridge {
                 document.addEventListener('DOMContentLoaded', setupTargetObserver);
             } else {
                 setupTargetObserver();
+            }
+        })();
+    """
+
+    /// MutationObserver script to detect when advanced-settings-header visibility changes
+    static let settingsVisibilityObserverScript = """
+        (function() {
+            let lastVisible = null;
+
+            function checkAndSend() {
+                const advancedHeader = document.querySelector('.advanced-settings-header');
+                const isVisible = advancedHeader !== null && advancedHeader.offsetParent !== null;
+                if (isVisible !== lastVisible) {
+                    lastVisible = isVisible;
+                    window.webkit.messageHandlers.settingsVisible.postMessage(isVisible);
+                }
+            }
+
+            const observer = new MutationObserver(checkAndSend);
+            observer.observe(document.body, { childList: true, subtree: true });
+
+            // Initial check after DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', checkAndSend);
+            } else {
+                checkAndSend();
             }
         })();
     """
@@ -278,6 +310,71 @@ enum JavaScriptBridge {
         })();
         """
     }
+
+    /// Scrape available weight options from the picker (opens picker invisibly, reads options, closes)
+    static let scrapeWeightOptions = """
+        (function() {
+            const button = document.querySelector('.weight-picker-button');
+            if (!button) {
+                window.webkit.messageHandlers.weightOptions.postMessage({ weights: [], isLbs: false });
+                return;
+            }
+
+            // Inject CSS to hide ALL possible overlay/modal elements while we interact
+            const style = document.createElement('style');
+            style.id = 'scrape-options-hide';
+            style.textContent = `
+                .weight-picker-overlay,
+                .modal,
+                .modal-backdrop,
+                [class*="overlay"],
+                [class*="modal"],
+                [class*="picker"] > div:not(button) {
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    visibility: hidden !important;
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Click to open the overlay
+            button.click();
+
+            // Wait for overlay to render, then scrape options
+            setTimeout(() => {
+                const options = document.querySelectorAll('.weight-option');
+                const weights = [];
+                let isLbs = false;
+
+                options.forEach(opt => {
+                    const text = opt.textContent.trim().toLowerCase();
+                    const value = parseFloat(text);
+                    if (!isNaN(value)) {
+                        weights.push(value);
+                        if (text.includes('lb')) isLbs = true;
+                    }
+                });
+
+                // Close picker by clicking the X button or clicking outside
+                const closeBtn = document.querySelector('.modal-close, [class*="close"], button[aria-label="Close"]');
+                if (closeBtn) {
+                    closeBtn.click();
+                } else {
+                    // Try clicking button again or body to close
+                    button.click();
+                }
+
+                // Remove the hiding style after a brief delay
+                setTimeout(() => style.remove(), 150);
+
+                // Send weights with unit info
+                window.webkit.messageHandlers.weightOptions.postMessage({
+                    weights: weights,
+                    isLbs: isLbs
+                });
+            }, 100);
+        })();
+    """
 
     /// MutationObserver script for real-time remaining time from timer display
     static let remainingTimeObserverScript = """

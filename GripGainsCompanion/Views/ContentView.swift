@@ -4,7 +4,6 @@ import Combine
 // MARK: - Auto Select Weight Modifier
 
 struct AutoSelectWeightModifier: ViewModifier {
-    let weightMedian: Float?
     let autoSelectWeight: Bool
     let autoSelectFromManual: Bool
     let manualTargetWeight: Double
@@ -12,11 +11,6 @@ struct AutoSelectWeightModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onChange(of: weightMedian) { _, newMedian in
-                if autoSelectWeight, !autoSelectFromManual, let median = newMedian {
-                    webCoordinator.setTargetWeight(median)
-                }
-            }
             .onChange(of: autoSelectFromManual) { _, useManual in
                 if autoSelectWeight, useManual {
                     webCoordinator.setTargetWeight(Float(manualTargetWeight))
@@ -111,6 +105,19 @@ struct ContentView: View {
     @State private var backgroundedAt: Date?
     @State private var wasGrippingAtBackground: Bool = false
 
+    // Weight picker state
+    @State private var availableWeights: [Float] = []
+    @State private var availableWeightsIsLbs: Bool = false
+    @State private var suggestedWeightKg: Float? = nil  // Suggested weight in kg
+    @State private var weightControlDragOffset: CGSize = .zero
+    @AppStorage("weightControlX") private var weightControlX: Double = -1
+    @AppStorage("weightControlY") private var weightControlY: Double = -1
+
+    // Session info (for detecting exercise changes)
+    @State private var scrapedGripper: String? = nil
+    @State private var scrapedSide: String? = nil
+    @State private var isSettingsVisible: Bool = true  // Whether advanced-settings-header is visible in web UI
+
     private let webCoordinator = WebViewCoordinator()
 
     private var preferredScheme: ColorScheme? {
@@ -161,6 +168,16 @@ struct ContentView: View {
         }
         .onChange(of: isFailButtonEnabled) { _, newValue in
             progressorHandler.canEngage = newValue
+            // Scrape weight options when fail button becomes enabled (page is ready)
+            if newValue && autoSelectWeight && availableWeights.isEmpty {
+                webCoordinator.scrapeWeightOptions()
+            }
+        }
+        .onChange(of: autoSelectWeight) { _, enabled in
+            // Scrape weight options when feature is enabled
+            if enabled && availableWeights.isEmpty {
+                webCoordinator.scrapeWeightOptions()
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
@@ -242,26 +259,8 @@ struct ContentView: View {
     }
 
     private var mainView: some View {
-        mainContent
-            .overlay { settingsButtonOverlay }
-            .sheet(isPresented: $showSettings) { settingsSheet }
-            .onChange(of: useManualTarget) { _, _ in updateTargetWeight() }
-            .onChange(of: manualTargetWeight) { _, _ in updateTargetWeight() }
-            .onChange(of: scrapedTargetWeight) { _, _ in updateTargetWeight() }
-            .onChange(of: weightTolerance) { _, newValue in
-                progressorHandler.weightTolerance = Float(newValue)
-            }
-            .onChange(of: enableCalibration) { _, newValue in
-                progressorHandler.enableCalibration = newValue
-            }
-            .onChange(of: engageThreshold) { _, newValue in
-                progressorHandler.engageThreshold = Float(newValue)
-            }
-            .onChange(of: failThreshold) { _, newValue in
-                progressorHandler.failThreshold = Float(newValue)
-            }
+        mainViewWithOverlays
             .modifier(AutoSelectWeightModifier(
-                weightMedian: progressorHandler.weightMedian,
                 autoSelectWeight: autoSelectWeight,
                 autoSelectFromManual: autoSelectFromManual,
                 manualTargetWeight: manualTargetWeight,
@@ -276,6 +275,57 @@ struct ContentView: View {
                 statsHideTimer: $statsHideTimer
             ))
             .preferredColorScheme(preferredScheme)
+    }
+
+    private var mainViewWithOverlays: some View {
+        mainViewWithHandlers
+            .overlay { settingsButtonOverlay }
+            .overlay { floatingWeightControlOverlay }
+            .sheet(isPresented: $showSettings) { settingsSheet }
+    }
+
+    private var mainViewWithHandlers: some View {
+        mainContent
+            .onChange(of: useManualTarget) { _, _ in updateTargetWeight() }
+            .onChange(of: manualTargetWeight) { _, _ in updateTargetWeight() }
+            .onChange(of: scrapedTargetWeight) { _, newValue in
+                updateTargetWeight()
+                // Initialize suggested weight to GG target
+                if let target = newValue {
+                    suggestedWeightKg = target
+                }
+            }
+            .onChange(of: progressorHandler.weightMedian) { _, newMedian in
+                // Update suggested weight when measurement is taken
+                if autoSelectWeight, let median = newMedian {
+                    suggestedWeightKg = median
+                }
+            }
+            .onChange(of: progressorHandler.engaged) { oldValue, newValue in
+                if oldValue && !newValue && autoSelectWeight {
+                    webCoordinator.scrapeWeightOptions()
+                }
+            }
+            .onChange(of: scrapedGripper) { _, _ in
+                // Exercise changed, re-scrape weight options for correct increments
+                webCoordinator.scrapeWeightOptions()
+            }
+            .onChange(of: scrapedSide) { _, _ in
+                // Side changed, re-scrape weight options for correct increments
+                webCoordinator.scrapeWeightOptions()
+            }
+            .onChange(of: weightTolerance) { _, newValue in
+                progressorHandler.weightTolerance = Float(newValue)
+            }
+            .onChange(of: enableCalibration) { _, newValue in
+                progressorHandler.enableCalibration = newValue
+            }
+            .onChange(of: engageThreshold) { _, newValue in
+                progressorHandler.engageThreshold = Float(newValue)
+            }
+            .onChange(of: failThreshold) { _, newValue in
+                progressorHandler.failThreshold = Float(newValue)
+            }
     }
 
     // MARK: - Target Weight
@@ -346,6 +396,51 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Floating Weight Control Overlay
+
+    @ViewBuilder
+    private var floatingWeightControlOverlay: some View {
+        // Show when feature enabled, connected, we have a suggested weight, and advanced-settings-header is visible
+        if autoSelectWeight && (isConnected || skippedDevice) && suggestedWeightKg != nil && isSettingsVisible {
+            GeometryReader { geometry in
+                let controlWidth: CGFloat = 160
+                let controlHeight: CGFloat = 100
+                let defaultX = (geometry.size.width - controlWidth) / 2
+                let defaultY = geometry.size.height - controlHeight - 100
+                let currentX = weightControlX < 0 ? defaultX : weightControlX
+                let currentY = weightControlY < 0 ? defaultY : weightControlY
+
+                FloatingWeightControl(
+                    ggTargetWeight: scrapedTargetWeight,
+                    suggestedWeight: suggestedWeightKg,
+                    useLbs: useLbs,
+                    canDecrement: canDecrementSuggestedWeight,
+                    canIncrement: canIncrementSuggestedWeight,
+                    onIncrement: { incrementSuggestedWeight() },
+                    onDecrement: { decrementSuggestedWeight() },
+                    onSet: { setSuggestedWeightInWebUI() }
+                )
+                .position(
+                    x: currentX + controlWidth / 2 + weightControlDragOffset.width,
+                    y: currentY + controlHeight / 2 + weightControlDragOffset.height
+                )
+                .gesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { value in
+                            weightControlDragOffset = value.translation
+                        }
+                        .onEnded { value in
+                            let newX = currentX + value.translation.width
+                            let newY = currentY + value.translation.height
+                            weightControlX = max(0, min(newX, geometry.size.width - controlWidth))
+                            weightControlY = max(0, min(newY, geometry.size.height - controlHeight))
+                            weightControlDragOffset = .zero
+                        }
+                )
+            }
+        }
+    }
+
     // MARK: - Status Bar
 
     private var statusBarView: some View {
@@ -375,6 +470,44 @@ struct ContentView: View {
         progressorHandler.targetWeight = effectiveTargetWeight
     }
 
+    // MARK: - Weight Picker Functions
+
+    /// Step size from scraped weights (difference between first two options)
+    private var weightStepSize: Float {
+        guard availableWeights.count >= 2 else { return 0.5 }
+        let stepInDisplayUnit = availableWeights[1] - availableWeights[0]
+        return availableWeightsIsLbs ? stepInDisplayUnit / AppConstants.kgToLbs : stepInDisplayUnit
+    }
+
+    /// Whether we can decrement the suggested weight
+    private var canDecrementSuggestedWeight: Bool {
+        guard let kg = suggestedWeightKg else { return false }
+        return kg - weightStepSize > 0
+    }
+
+    /// Whether we can increment the suggested weight
+    private var canIncrementSuggestedWeight: Bool {
+        suggestedWeightKg != nil
+    }
+
+    private func incrementSuggestedWeight() {
+        guard let kg = suggestedWeightKg else { return }
+        suggestedWeightKg = kg + weightStepSize
+    }
+
+    private func decrementSuggestedWeight() {
+        guard let kg = suggestedWeightKg else { return }
+        let newKg = kg - weightStepSize
+        if newKg > 0 {
+            suggestedWeightKg = newKg
+        }
+    }
+
+    private func setSuggestedWeightInWebUI() {
+        guard let weightKg = suggestedWeightKg else { return }
+        webCoordinator.setTargetWeight(weightKg)
+    }
+
     // MARK: - Combine Subscriptions
 
     private func setupSubscriptions() {
@@ -386,6 +519,10 @@ struct ContentView: View {
         // WebView target weight scraping
         webCoordinator.onTargetWeightChanged = { weight in
             scrapedTargetWeight = weight
+            // If we can scrape target weight, the picker screen is visible - scrape options too
+            if weight != nil && autoSelectWeight && availableWeights.isEmpty {
+                webCoordinator.scrapeWeightOptions()
+            }
         }
 
         // WebView target duration scraping
@@ -397,6 +534,23 @@ struct ContentView: View {
         // WebView remaining time scraping
         webCoordinator.onRemainingTimeChanged = { remaining in
             scrapedRemainingTime = remaining
+        }
+
+        // WebView weight options scraping
+        webCoordinator.onWeightOptionsChanged = { weights, isLbs in
+            availableWeights = weights.sorted()
+            availableWeightsIsLbs = isLbs
+        }
+
+        // WebView session info (gripper type, side)
+        webCoordinator.onSessionInfoChanged = { gripper, side in
+            scrapedGripper = gripper
+            scrapedSide = side
+        }
+
+        // WebView advanced-settings-header visibility
+        webCoordinator.onSettingsVisibleChanged = { visible in
+            isSettingsVisible = visible
         }
 
         // BLE force samples -> Handler

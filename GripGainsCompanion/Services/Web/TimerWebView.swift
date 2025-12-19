@@ -25,6 +25,9 @@ struct TimerWebView: UIViewRepresentable {
         contentController.add(coordinator, name: "targetWeight")
         contentController.add(coordinator, name: "targetDuration")
         contentController.add(coordinator, name: "remainingTime")
+        contentController.add(coordinator, name: "weightOptions")
+        contentController.add(coordinator, name: "sessionInfo")
+        contentController.add(coordinator, name: "settingsVisible")
 
         // Inject background time offset script at document start (must run before page scripts)
         let backgroundTimeScript = WKUserScript(
@@ -58,6 +61,14 @@ struct TimerWebView: UIViewRepresentable {
         )
         contentController.addUserScript(remainingTimeScript)
 
+        // Inject settings visibility observer script (watches for advanced-settings-header)
+        let settingsVisibilityScript = WKUserScript(
+            source: JavaScriptBridge.settingsVisibilityObserverScript,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(settingsVisibilityScript)
+
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = coordinator
         coordinator.setWebView(webView)
@@ -80,5 +91,8 @@ struct TimerWebView: UIViewRepresentable {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "targetWeight")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "targetDuration")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "remainingTime")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "weightOptions")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "sessionInfo")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "settingsVisible")
     }
 }

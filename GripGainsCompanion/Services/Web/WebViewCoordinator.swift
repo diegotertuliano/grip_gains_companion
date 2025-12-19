@@ -17,6 +17,15 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     /// Callback when remaining time changes (scraped from timer display, in seconds, negative = overtime)
     var onRemainingTimeChanged: ((Int?) -> Void)?
 
+    /// Callback when available weight options are scraped (weights in display unit, isLbs indicates unit)
+    var onWeightOptionsChanged: (([Float], Bool) -> Void)?
+
+    /// Callback when session info changes (gripper type, side)
+    var onSessionInfoChanged: ((String?, String?) -> Void)?
+
+    /// Callback when settings screen visibility changes (false = gripping in progress)
+    var onSettingsVisibleChanged: ((Bool) -> Void)?
+
     override init() {
         super.init()
     }
@@ -69,6 +78,34 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
                     self?.onRemainingTimeChanged?(remaining)
                 } else {
                     self?.onRemainingTimeChanged?(nil)
+                }
+            }
+
+        case "weightOptions":
+            DispatchQueue.main.async { [weak self] in
+                if let dict = message.body as? [String: Any],
+                   let weights = dict["weights"] as? [Double],
+                   let isLbs = dict["isLbs"] as? Bool {
+                    let floats = weights.map { Float($0) }
+                    self?.onWeightOptionsChanged?(floats, isLbs)
+                } else {
+                    self?.onWeightOptionsChanged?([], false)
+                }
+            }
+
+        case "sessionInfo":
+            DispatchQueue.main.async { [weak self] in
+                if let dict = message.body as? [String: Any] {
+                    let gripper = dict["gripper"] as? String
+                    let side = dict["side"] as? String
+                    self?.onSessionInfoChanged?(gripper, side)
+                }
+            }
+
+        case "settingsVisible":
+            DispatchQueue.main.async { [weak self] in
+                if let isVisible = message.body as? Bool {
+                    self?.onSettingsVisibleChanged?(isVisible)
                 }
             }
 
@@ -163,6 +200,23 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
             _ = try await webView?.evaluateJavaScript(JavaScriptBridge.scrapeTargetWeight)
         } catch {
             Log.app.error("Error scraping target weight: \(error.localizedDescription)")
+        }
+    }
+
+    /// Scrape available weight options from the web UI picker
+    func scrapeWeightOptions() {
+        Task { @MainActor in
+            await scrapeWeightOptionsAsync()
+        }
+    }
+
+    /// Scrape available weight options (async version)
+    @MainActor
+    func scrapeWeightOptionsAsync() async {
+        do {
+            _ = try await webView?.evaluateJavaScript(JavaScriptBridge.scrapeWeightOptions)
+        } catch {
+            Log.app.error("Error scraping weight options: \(error.localizedDescription)")
         }
     }
 
