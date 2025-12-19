@@ -1,6 +1,35 @@
 import SwiftUI
 import Combine
 
+// MARK: - Auto Select Weight Modifier
+
+struct AutoSelectWeightModifier: ViewModifier {
+    let weightMedian: Float?
+    let autoSelectWeight: Bool
+    let autoSelectFromManual: Bool
+    let manualTargetWeight: Double
+    let webCoordinator: WebViewCoordinator
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: weightMedian) { _, newMedian in
+                if autoSelectWeight, !autoSelectFromManual, let median = newMedian {
+                    webCoordinator.setTargetWeight(median)
+                }
+            }
+            .onChange(of: autoSelectFromManual) { _, useManual in
+                if autoSelectWeight, useManual {
+                    webCoordinator.setTargetWeight(Float(manualTargetWeight))
+                }
+            }
+            .onChange(of: manualTargetWeight) { _, _ in
+                if autoSelectWeight, autoSelectFromManual {
+                    webCoordinator.setTargetWeight(Float(manualTargetWeight))
+                }
+            }
+    }
+}
+
 // MARK: - Stats Change Modifier
 
 struct StatsChangeModifier: ViewModifier {
@@ -72,6 +101,8 @@ struct ContentView: View {
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0
     @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
     @AppStorage("enableLiveActivity") private var enableLiveActivity = false
+    @AppStorage("autoSelectWeight") private var autoSelectWeight = false
+    @AppStorage("autoSelectFromManual") private var autoSelectFromManual = false
     @State private var dragOffset: CGSize = .zero
     @State private var displayedMean: Float?
     @State private var displayedStdDev: Float?
@@ -229,6 +260,13 @@ struct ContentView: View {
             .onChange(of: failThreshold) { _, newValue in
                 progressorHandler.failThreshold = Float(newValue)
             }
+            .modifier(AutoSelectWeightModifier(
+                weightMedian: progressorHandler.weightMedian,
+                autoSelectWeight: autoSelectWeight,
+                autoSelectFromManual: autoSelectFromManual,
+                manualTargetWeight: manualTargetWeight,
+                webCoordinator: webCoordinator
+            ))
             .modifier(StatsChangeModifier(
                 sessionMean: progressorHandler.sessionMean,
                 sessionStdDev: progressorHandler.sessionStdDev,

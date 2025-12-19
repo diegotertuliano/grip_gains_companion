@@ -166,6 +166,23 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
         }
     }
 
+    /// Set target weight in web UI picker (value in kg, auto-converts if web is in lbs)
+    func setTargetWeight(_ weightKg: Float) {
+        Task { @MainActor in
+            await setTargetWeightAsync(weightKg)
+        }
+    }
+
+    /// Set target weight in web UI picker (async version)
+    @MainActor
+    func setTargetWeightAsync(_ weightKg: Float) async {
+        do {
+            _ = try await webView?.evaluateJavaScript(JavaScriptBridge.setTargetWeightScript(weightKg: weightKg))
+        } catch {
+            Log.app.error("Error setting target weight: \(error.localizedDescription)")
+        }
+    }
+
     /// Record timer state when entering background
     func recordBackgroundStart() {
         Task { @MainActor in

@@ -216,6 +216,69 @@ enum JavaScriptBridge {
         })();
     """
 
+    /// Set target weight in the web UI picker (value in kg, converts to lbs if needed)
+    static func setTargetWeightScript(weightKg: Float) -> String {
+        """
+        (function() {
+            const KG_TO_LBS = 2.20462;
+            const targetKg = \(weightKg);
+
+            // Find the weight picker button
+            const button = document.querySelector('.weight-picker-button');
+            if (!button) return;
+
+            // Inject CSS to hide the overlay while we interact with it
+            const style = document.createElement('style');
+            style.id = 'auto-select-hide';
+            style.textContent = '.weight-picker-overlay { opacity: 0 !important; pointer-events: none !important; }';
+            document.head.appendChild(style);
+
+            // Click to open the overlay
+            button.click();
+
+            // Wait for overlay to render, then find options
+            setTimeout(() => {
+                const options = document.querySelectorAll('.weight-option');
+                if (!options.length) {
+                    // Clean up style if no options found
+                    style.remove();
+                    return;
+                }
+
+                // Detect web UI unit from option text (kg vs lbs)
+                const firstText = options[0].textContent.trim();
+                const isLbs = firstText.toLowerCase().includes('lb');
+
+                // Convert kg to lbs if web UI is in lbs
+                const targetValue = isLbs ? targetKg * KG_TO_LBS : targetKg;
+
+                // Find closest option
+                let closest = null;
+                let closestDiff = Infinity;
+
+                options.forEach(opt => {
+                    const text = opt.textContent.trim();
+                    const value = parseFloat(text);
+                    const diff = Math.abs(value - targetValue);
+                    if (diff < closestDiff) {
+                        closestDiff = diff;
+                        closest = opt;
+                    }
+                });
+
+                // Temporarily enable pointer events to click
+                style.textContent = '.weight-picker-overlay { opacity: 0 !important; }';
+
+                // Click the closest option (Vue handles the rest)
+                if (closest) closest.click();
+
+                // Remove the hiding style after overlay closes
+                setTimeout(() => style.remove(), 100);
+            }, 50);
+        })();
+        """
+    }
+
     /// MutationObserver script for real-time remaining time from timer display
     static let remainingTimeObserverScript = """
         (function() {

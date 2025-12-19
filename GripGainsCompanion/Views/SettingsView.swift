@@ -48,6 +48,8 @@ struct SettingsView: View {
     @AppStorage("enableCalibration") private var enableCalibration = true
     @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
     @AppStorage("enableLiveActivity") private var enableLiveActivity = false
+    @AppStorage("autoSelectWeight") private var autoSelectWeight = false
+    @AppStorage("autoSelectFromManual") private var autoSelectFromManual = false
     @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0  // stored in kg
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0      // stored in kg
     @State private var manualTargetText: String = "20.00"
@@ -320,6 +322,20 @@ struct SettingsView: View {
                     if backgroundTimeSync {
                         Toggle("Live Activity", isOn: $enableLiveActivity)
                         Text("Shows elapsed and remaining time in Dynamic Island when backgrounded.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Toggle("Auto-set Target Weight", isOn: $autoSelectWeight)
+                    if autoSelectWeight {
+                        Picker("Source", selection: $autoSelectFromManual) {
+                            Text("Measured").tag(false)
+                            Text("Manual").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        Text(autoSelectFromManual
+                            ? "Uses manual target weight from settings above."
+                            : "Uses measured weight when you pick up a weight.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
