@@ -22,6 +22,8 @@
 		015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116 /* SettingsView.swift */; };
 		016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 117 /* Assets.xcassets */; };
 		7E02DCD62EF23D4000C60B3B /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E02DCD52EF23D4000C60B3B /* SoundManager.swift */; };
+		7E5D1A142EF966DA001C3436 /* MockCentralManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5D1A122EF966DA001C3436 /* MockCentralManager.swift */; };
+		7E5D1A152EF966DA001C3436 /* BluetoothManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5D1A112EF966DA001C3436 /* BluetoothManagerTests.swift */; };
 		7E69085E2EF5188500206778 /* GripTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085D2EF5188500206778 /* GripTimerAttributes.swift */; };
 		7E6908602EF5189300206778 /* ActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085F2EF5189300206778 /* ActivityManager.swift */; };
 		7E7ABC132EF3831100CC854B /* ForceGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7ABC122EF3831100CC854B /* ForceGraphView.swift */; };
@@ -88,6 +90,8 @@
 		116 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		117 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7E02DCD52EF23D4000C60B3B /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
+		7E5D1A112EF966DA001C3436 /* BluetoothManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothManagerTests.swift; sourceTree = "<group>"; };
+		7E5D1A122EF966DA001C3436 /* MockCentralManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockCentralManager.swift; sourceTree = "<group>"; };
 		7E69085D2EF5188500206778 /* GripTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GripTimerAttributes.swift; sourceTree = "<group>"; };
 		7E69085F2EF5189300206778 /* ActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityManager.swift; sourceTree = "<group>"; };
 		7E7ABC122EF3831100CC854B /* ForceGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceGraphView.swift; sourceTree = "<group>"; };
@@ -243,6 +247,14 @@
 			path = Web;
 			sourceTree = "<group>";
 		};
+		7E5D1A132EF966DA001C3436 /* Mocks */ = {
+			isa = PBXGroup;
+			children = (
+				7E5D1A122EF966DA001C3436 /* MockCentralManager.swift */,
+			);
+			path = Mocks;
+			sourceTree = "<group>";
+		};
 		7EC12C902EF1195800A9D66C /* Utils */ = {
 			isa = PBXGroup;
 			children = (
@@ -266,6 +278,8 @@
 		T300 /* GripGainsCompanionTests */ = {
 			isa = PBXGroup;
 			children = (
+				7E5D1A112EF966DA001C3436 /* BluetoothManagerTests.swift */,
+				7E5D1A132EF966DA001C3436 /* Mocks */,
 				T101 /* WeightFormatterTests.swift */,
 				T102 /* ProgressorHandlerTests.swift */,
 				T103 /* WebViewCoordinatorTests.swift */,
@@ -447,6 +461,8 @@
 				T001 /* WeightFormatterTests.swift in Sources */,
 				T002 /* ProgressorHandlerTests.swift in Sources */,
 				T003 /* WebViewCoordinatorTests.swift in Sources */,
+				7E5D1A142EF966DA001C3436 /* MockCentralManager.swift in Sources */,
+				7E5D1A152EF966DA001C3436 /* BluetoothManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

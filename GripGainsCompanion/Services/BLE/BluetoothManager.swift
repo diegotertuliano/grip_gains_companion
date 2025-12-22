@@ -3,6 +3,19 @@ import Combine
 import SwiftUI
 import os
 
+// MARK: - Central Manager Protocol (for testability)
+
+/// Protocol for CBCentralManager to enable dependency injection in tests
+protocol CentralManagerProtocol: AnyObject {
+    var state: CBManagerState { get }
+    func scanForPeripherals(withServices serviceUUIDs: [CBUUID]?, options: [String: Any]?)
+    func stopScan()
+    func connect(_ peripheral: CBPeripheral, options: [String: Any]?)
+    func cancelPeripheralConnection(_ peripheral: CBPeripheral)
+}
+
+extension CBCentralManager: CentralManagerProtocol {}
+
 /// Connection state for the Tindeq Progressor
 enum ConnectionState: Equatable {
     case initializing
@@ -31,9 +44,9 @@ class BluetoothManager: NSObject, ObservableObject {
     @Published var connectedDeviceName: String?
 
     /// Persisted ID of last connected device for auto-reconnect
-    @AppStorage("lastConnectedDeviceId") private var lastConnectedDeviceId: String = ""
+    @AppStorage("lastConnectedDeviceId") private(set) var lastConnectedDeviceId: String = ""
 
-    private var centralManager: CBCentralManager!
+    private var centralManager: CentralManagerProtocol!
     private var connectedPeripheral: CBPeripheral?
     private var progressorService: ProgressorService?
     private var peripheralCache: [UUID: CBPeripheral] = [:]
@@ -44,8 +57,8 @@ class BluetoothManager: NSObject, ObservableObject {
     private var pendingDevice: ProgressorDevice?
     private var shouldAutoReconnect: Bool = true
 
-    /// Background inactivity disconnect timer
-    private var backgroundDisconnectTimer: Timer?
+    /// Background inactivity disconnect timer (internal for testability)
+    var backgroundDisconnectTimer: Timer?
 
     /// Callback when force samples are received
     var onForceSample: ((Float) -> Void)?
@@ -53,6 +66,12 @@ class BluetoothManager: NSObject, ObservableObject {
     override init() {
         super.init()
         centralManager = CBCentralManager(delegate: self, queue: .main)
+    }
+
+    /// Test initializer for dependency injection
+    init(centralManager: CentralManagerProtocol) {
+        super.init()
+        self.centralManager = centralManager
     }
 
     // MARK: - Public Methods
