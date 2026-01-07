@@ -584,9 +584,6 @@ struct SettingsView: View {
         showStatusBar = AppConstants.defaultShowStatusBar
         expandedForceBar = AppConstants.defaultExpandedForceBar
         showForceGraph = AppConstants.defaultShowForceGraph
-        forceGraphWindow = AppConstants.defaultForceGraphWindow
-        fullScreen = AppConstants.defaultFullScreen
-        forceBarTheme = ForceBarTheme.system.rawValue
 
         // Target weight
         enableTargetWeight = AppConstants.defaultEnableTargetWeight

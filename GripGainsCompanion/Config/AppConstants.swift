@@ -37,8 +37,8 @@ struct AppConstants {
     static let defaultEngageCeiling: Float = 0.0
     static let defaultDisengageFloor: Float = 2.0
     static let defaultDisengageCeiling: Float = 0.0
-    static let defaultToleranceFloor: Float = 1.0
-    static let defaultToleranceCeiling: Float = 0.0
+    static let defaultToleranceFloor: Float = 0.3
+    static let defaultToleranceCeiling: Float = 1.5
 
     // MARK: - UI Defaults
     static let defaultEnableHaptics: Bool = true
@@ -48,15 +48,15 @@ struct AppConstants {
     static let defaultShowStatusBar: Bool = true
     static let defaultExpandedForceBar: Bool = true
     static let defaultShowForceGraph: Bool = true
-    static let defaultForceGraphWindow: Int = 10
+    static let defaultForceGraphWindow: Int = 5
     static let defaultFullScreen: Bool = true
     static let defaultEnableTargetWeight: Bool = true
     static let defaultUseManualTarget: Bool = false
     static let defaultManualTargetWeight: Double = 20.0
     static let defaultEnableCalibration: Bool = true
     static let defaultBackgroundTimeSync: Bool = true
-    static let defaultEnableLiveActivity: Bool = false
-    static let defaultAutoSelectWeight: Bool = false
+    static let defaultEnableLiveActivity: Bool = true
+    static let defaultAutoSelectWeight: Bool = true
     static let defaultAutoSelectFromManual: Bool = false
     static let defaultUseKeyboardInput: Bool = false
 
