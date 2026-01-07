@@ -173,7 +173,7 @@ struct ContentView: View {
     @AppStorage("enableCalibration") private var enableCalibration = true
     @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0
-    @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = false
+    @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
     @AppStorage("engagePercentage") private var engagePercentage: Double = Double(AppConstants.defaultEngagePercentage)
     @AppStorage("disengagePercentage") private var disengagePercentage: Double = Double(AppConstants.defaultDisengagePercentage)
     @AppStorage("tolerancePercentage") private var tolerancePercentage: Double = Double(AppConstants.defaultTolerancePercentage)

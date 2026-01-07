@@ -808,8 +808,8 @@ final class ProgressorHandlerTests: XCTestCase {
 
     // MARK: Toggle Behavior
 
-    func testPercentageThresholdsDisabledByDefault() {
-        XCTAssertFalse(handler.enablePercentageThresholds, "Percentage thresholds should be disabled by default")
+    func testPercentageThresholdsEnabledByDefault() {
+        XCTAssertTrue(handler.enablePercentageThresholds, "Percentage thresholds should be enabled by default")
     }
 
     func testFixedThresholdsUsedWhenToggleOff() {
@@ -1521,5 +1521,47 @@ final class ProgressorHandlerTests: XCTestCase {
         XCTAssertEqual(handler.disengageCeiling, AppConstants.defaultDisengageCeiling)
         XCTAssertEqual(handler.toleranceFloor, AppConstants.defaultToleranceFloor)
         XCTAssertEqual(handler.toleranceCeiling, AppConstants.defaultToleranceCeiling)
+    }
+
+    // MARK: - Small Target Weight Tests
+
+    func testSmallTargetThresholdBehavior() {
+        // 3kg target with default floors (engage 3kg, disengage 2kg)
+        // Engage: max(3 * 0.50, 3.0) = max(1.5, 3.0) = 3.0 kg (100% of target)
+        // Disengage: max(3 * 0.20, 2.0) = max(0.6, 2.0) = 2.0 kg
+        setupWithPercentageThresholdsAndBounds(target: 3.0)
+        handler.canEngage = true
+
+        // At 3.0kg (engage floor = target), should engage
+        processTestSample(3.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at 3.0kg for 3kg target (100% threshold)")
+    }
+
+    func testSmallTargetDisengageBehavior() {
+        // 3kg target: disengage threshold = max(3 * 0.20, 2.0) = 2.0 kg
+        setupWithPercentageThresholdsAndBounds(target: 3.0)
+        handler.canEngage = true
+
+        let failedExpectation = expectation(description: "Grip failed")
+        handler.gripFailed
+            .sink { failedExpectation.fulfill() }
+            .store(in: &cancellables)
+
+        // Engage first
+        processTestSample(3.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At exactly 2.0kg (disengage floor), should still be engaged
+        processTestSample(2.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should still be engaged at exactly 2.0kg threshold")
+
+        // Below 2.0kg, should disengage
+        processTestSample(1.9)
+
+        wait(for: [failedExpectation], timeout: 1.0)
+        XCTAssertFalse(handler.engaged, "Should disengage below 2.0kg for 3kg target")
     }
 }

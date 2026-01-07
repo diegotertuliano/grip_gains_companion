@@ -22,7 +22,7 @@ struct AppConstants {
     static let offTargetFeedbackInterval: TimeInterval = 1.0  // seconds (throttle)
 
     // MARK: - Percentage-Based Thresholds
-    static let defaultEnablePercentageThresholds: Bool = false
+    static let defaultEnablePercentageThresholds: Bool = true
     static let defaultEngagePercentage: Float = 0.50      // 50% of target weight
     static let defaultDisengagePercentage: Float = 0.20   // 20% of target weight
     static let defaultTolerancePercentage: Float = 0.05   // 5% of target weight
