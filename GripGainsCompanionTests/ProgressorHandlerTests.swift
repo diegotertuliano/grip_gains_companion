@@ -1564,4 +1564,147 @@ final class ProgressorHandlerTests: XCTestCase {
         wait(for: [failedExpectation], timeout: 1.0)
         XCTAssertFalse(handler.engaged, "Should disengage below 2.0kg for 3kg target")
     }
+
+    // MARK: - Weight Calibration Threshold Tests
+
+    func testDefaultWeightCalibrationThreshold() {
+        XCTAssertEqual(handler.weightCalibrationThreshold, AppConstants.defaultWeightCalibrationThreshold,
+                       "Weight calibration threshold should default to AppConstants value")
+    }
+
+    func testWeightCalibrationUsesLowerThresholdThanEngage() {
+        // Setup with high engage threshold (percentage-based, 50% of 40kg = 20kg)
+        handler.enablePercentageThresholds = true
+        handler.targetWeight = 40.0
+        handler.engagePercentage = 0.50  // 20kg engage threshold
+        handler.engageFloor = 0  // Disable floor to get full 20kg
+        handler.weightCalibrationThreshold = 3.0  // Low threshold for calibration
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = false  // Weight calibration mode
+
+        // At 5kg - below engage threshold (20kg) but above weight calibration (3kg)
+        processTestSample(5.0)
+        waitForMainQueue()
+
+        // Should be in weight calibration, not stuck in idle
+        if case .weightCalibration(_, _, let isHolding) = handler.state {
+            XCTAssertTrue(isHolding, "Should be holding in weight calibration at 5kg")
+        } else {
+            XCTFail("Should be in weightCalibration state at 5kg, got \(handler.state)")
+        }
+    }
+
+    func testWeightCalibrationDoesNotActivateBelowThreshold() {
+        // Setup with percentage thresholds
+        handler.enablePercentageThresholds = true
+        handler.targetWeight = 40.0
+        handler.engagePercentage = 0.50
+        handler.engageFloor = 0
+        handler.weightCalibrationThreshold = 3.0
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = false
+
+        // At 2.5kg - below weight calibration threshold (3kg)
+        processTestSample(2.5)
+        waitForMainQueue()
+
+        // Should stay in idle
+        if case .idle = handler.state {
+            // Expected
+        } else {
+            XCTFail("Should remain in idle state when below weight calibration threshold, got \(handler.state)")
+        }
+    }
+
+    func testGrippingStillRequiresFullEngageThreshold() {
+        // Setup with high engage threshold
+        handler.enablePercentageThresholds = true
+        handler.targetWeight = 40.0
+        handler.engagePercentage = 0.50  // 20kg engage threshold
+        handler.engageFloor = 0
+        handler.weightCalibrationThreshold = 3.0
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = true  // Now can engage
+
+        // At 10kg - above weight calibration (3kg) but below engage (20kg)
+        processTestSample(10.0)
+        waitForMainQueue()
+
+        // Should NOT be gripping
+        XCTAssertFalse(handler.engaged, "Should NOT be gripping at 10kg when engage threshold is 20kg")
+
+        // At 20kg - should now engage
+        processTestSample(20.0)
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.engaged, "Should engage at 20kg (full engage threshold)")
+    }
+
+    func testTransitionFromWeightCalibrationToGrippingAtFullThreshold() {
+        // Setup with high engage threshold
+        handler.enablePercentageThresholds = true
+        handler.targetWeight = 40.0
+        handler.engagePercentage = 0.50  // 20kg engage threshold
+        handler.engageFloor = 0
+        handler.weightCalibrationThreshold = 3.0
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = false
+
+        // Start in weight calibration at 10kg
+        processTestSample(10.0)
+        waitForMainQueue()
+
+        if case .weightCalibration = handler.state {
+            // Expected
+        } else {
+            XCTFail("Should be in weight calibration")
+        }
+
+        // Enable engagement and increase force to full threshold
+        handler.canEngage = true
+        processTestSample(20.0)
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.engaged, "Should transition to gripping when reaching full engage threshold")
+    }
+
+    func testWeightCalibrationExitUsesCalibrationThreshold() {
+        // Setup with separate thresholds
+        handler.enablePercentageThresholds = true
+        handler.targetWeight = 40.0
+        handler.engagePercentage = 0.50  // 20kg engage threshold
+        handler.engageFloor = 0
+        handler.weightCalibrationThreshold = 3.0
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = false
+
+        // Enter weight calibration at 10kg
+        processTestSample(10.0)
+        waitForMainQueue()
+
+        if case .weightCalibration(_, _, let isHolding) = handler.state {
+            XCTAssertTrue(isHolding)
+        } else {
+            XCTFail("Should be in weight calibration holding")
+        }
+
+        // Drop to 2.5kg - below weight calibration threshold (3kg)
+        // Should mark as not holding
+        processTestSample(2.5)
+        waitForMainQueue()
+
+        if case .weightCalibration(_, _, let isHolding) = handler.state {
+            XCTAssertFalse(isHolding, "Should mark as not holding when below weight calibration threshold")
+        } else {
+            XCTFail("Should still be in weight calibration state (not holding)")
+        }
+    }
+
+    func testWeightCalibrationThresholdIsConfigurable() {
+        handler.weightCalibrationThreshold = 5.0
+        XCTAssertEqual(handler.weightCalibrationThreshold, 5.0)
+
+        handler.weightCalibrationThreshold = 2.0
+        XCTAssertEqual(handler.weightCalibrationThreshold, 2.0)
+    }
 }

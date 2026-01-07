@@ -137,6 +137,12 @@ class ProgressorHandler: ObservableObject {
     /// Maximum tolerance in kg (0 = disabled, use pure percentage)
     var toleranceCeiling: Double = Double(AppConstants.defaultToleranceCeiling)
 
+    // MARK: - Weight Calibration Threshold
+
+    /// Fixed threshold for entering weight calibration mode (lower than grip engage threshold)
+    /// This allows measuring weights even when the percentage-based engage threshold is high
+    var weightCalibrationThreshold: Double = AppConstants.defaultWeightCalibrationThreshold
+
     /// Apply floor and ceiling bounds to a value (0 = disabled for that bound)
     private func applyBounds(_ value: Double, floor: Double, ceiling: Double) -> Double {
         let floored = floor > 0 ? max(value, floor) : value
@@ -314,16 +320,14 @@ class ProgressorHandler: ObservableObject {
 
     private func handleIdleState(rawWeight: Double, taredWeight: Double, baseline: Double, timestamp: UInt32) {
         let sample = TimestampedSample(weight: rawWeight, timestamp: timestamp)
-        if taredWeight >= effectiveEngageThreshold {
-            if canEngage {
-                // Start real grip session
-                weightMedian = nil
-                state = .gripping(baseline: baseline, startTimestamp: timestamp, samples: [sample])
-            } else {
-                // Start weight calibration
-                state = .weightCalibration(baseline: baseline, samples: [sample], isHolding: true)
-                weightMedian = rawWeight
-            }
+        if canEngage && taredWeight >= effectiveEngageThreshold {
+            // Start real grip session - needs full engage threshold
+            weightMedian = nil
+            state = .gripping(baseline: baseline, startTimestamp: timestamp, samples: [sample])
+        } else if !canEngage && taredWeight >= weightCalibrationThreshold {
+            // Start weight calibration - uses lower fixed threshold for easy measurement
+            state = .weightCalibration(baseline: baseline, samples: [sample], isHolding: true)
+            weightMedian = rawWeight
         }
         publishForceUpdate()
     }
@@ -339,12 +343,13 @@ class ProgressorHandler: ObservableObject {
         let sample = TimestampedSample(weight: rawWeight, timestamp: timestamp)
         let weights = samples.map(\.weight)
 
-        if taredWeight >= effectiveEngageThreshold {
-            if canEngage {
-                // Switch to real grip session
-                weightMedian = nil
-                state = .gripping(baseline: baseline, startTimestamp: timestamp, samples: [sample])
-            } else if isHolding {
+        if canEngage && taredWeight >= effectiveEngageThreshold {
+            // Switch to real grip session - needs full engage threshold
+            weightMedian = nil
+            state = .gripping(baseline: baseline, startTimestamp: timestamp, samples: [sample])
+        } else if taredWeight >= weightCalibrationThreshold {
+            // Above weight calibration threshold - continue measuring
+            if isHolding {
                 // Continue weight calibration
                 samples.append(sample)
                 weightMedian = median(samples.map(\.weight))
@@ -354,7 +359,7 @@ class ProgressorHandler: ObservableObject {
                 state = .weightCalibration(baseline: baseline, samples: [sample], isHolding: true)
                 weightMedian = rawWeight
             }
-        } else if taredWeight < effectiveEngageThreshold && isHolding {
+        } else if taredWeight < weightCalibrationThreshold && isHolding {
             // Put down weight - calculate final trimmed median and mark as not holding
             weightMedian = trimmedMedian(weights)
             state = .weightCalibration(baseline: baseline, samples: samples, isHolding: false)

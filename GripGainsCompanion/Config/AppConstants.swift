@@ -40,6 +40,10 @@ struct AppConstants {
     static let defaultToleranceFloor: Double = 0.3
     static let defaultToleranceCeiling: Double = 1.5
 
+    // MARK: - Weight Calibration
+    /// Fixed threshold for weight calibration mode (separate from grip engage threshold)
+    static let defaultWeightCalibrationThreshold: Double = 3.0  // kg
+
     // MARK: - UI Defaults
     static let defaultEnableHaptics: Bool = true
     static let defaultEnableTargetSound: Bool = true

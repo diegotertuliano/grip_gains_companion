@@ -57,7 +57,7 @@ struct FloatingWeightControl: View {
                 .disabled(!canIncrement)
             }
 
-            // SET button - disabled if no weight or same as current GG target
+            // SET button
             Button(action: onSet) {
                 Text("SET")
                     .font(.subheadline)

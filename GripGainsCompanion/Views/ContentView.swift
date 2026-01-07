@@ -582,8 +582,8 @@ struct ContentView: View {
 
     @ViewBuilder
     private var floatingWeightControlOverlay: some View {
-        // Show when feature enabled, connected, we have a suggested weight, and advanced-settings-header is visible
-        if autoSelectWeight && (isConnected || skippedDevice) && suggestedWeightKg != nil && isSettingsVisible {
+        // Show when feature enabled and weight picker is available on website
+        if autoSelectWeight && !availableWeights.isEmpty {
             GeometryReader { geometry in
                 let controlWidth: CGFloat = 160
                 let controlHeight: CGFloat = 100
