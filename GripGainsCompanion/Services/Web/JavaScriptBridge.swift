@@ -478,4 +478,51 @@ enum JavaScriptBridge {
             }
         })();
     """
+
+    /// MutationObserver script to detect "Save to Database" button appearance (end of set)
+    static let saveButtonObserverScript = """
+        (function() {
+            let lastSaveButtonVisible = false;
+
+            function checkSaveButton() {
+                // Look for the Save to Database button by text content
+                const buttons = document.querySelectorAll('button.btn.btn-primary');
+                let saveButtonFound = false;
+
+                for (const button of buttons) {
+                    if (button.textContent.trim() === 'Save to Database') {
+                        saveButtonFound = true;
+                        break;
+                    }
+                }
+
+                // Only notify on state change (button appeared)
+                if (saveButtonFound && !lastSaveButtonVisible) {
+                    window.webkit.messageHandlers.saveButtonAppeared.postMessage(true);
+                }
+                lastSaveButtonVisible = saveButtonFound;
+            }
+
+            function setupSaveButtonObserver() {
+                const observer = new MutationObserver(function() {
+                    checkSaveButton();
+                });
+
+                // Watch entire body for button appearance
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+
+                // Initial check
+                checkSaveButton();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupSaveButtonObserver);
+            } else {
+                setupSaveButtonObserver();
+            }
+        })();
+    """
 }

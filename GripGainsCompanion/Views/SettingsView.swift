@@ -64,10 +64,14 @@ struct SettingsView: View {
     /// Target weight scraped from website (read-only display)
     let scrapedTargetWeight: Float?
 
+    /// Progressor handler for sample filter test (optional, only needed when connected)
+    var progressorHandler: ProgressorHandler?
+
     @Environment(\.dismiss) private var dismiss
     @AppStorage("enableHaptics") private var enableHaptics = true
     @AppStorage("enableTargetSound") private var enableTargetSound = true
     @AppStorage("showGripStats") private var showGripStats = true
+    @AppStorage("showSetReview") private var showSetReview = false
     @AppStorage("showStatusBar") private var showStatusBar = true
     @AppStorage("expandedForceBar") private var expandedForceBar = false
     @AppStorage("showForceGraph") private var showForceGraph = false
@@ -444,6 +448,7 @@ struct SettingsView: View {
                     Toggle("Haptic Feedback", isOn: $enableHaptics)
                     Toggle("Target Weight Sounds", isOn: $enableTargetSound)
                     Toggle("Grip Statistics", isOn: $showGripStats)
+                    Toggle("End-of-Set Summary", isOn: $showSetReview)
                 }
 
                 // Device section
@@ -505,6 +510,7 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+
                 }
 
                 // Units section

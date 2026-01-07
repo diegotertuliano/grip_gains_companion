@@ -28,6 +28,7 @@ struct TimerWebView: UIViewRepresentable {
         contentController.add(coordinator, name: "weightOptions")
         contentController.add(coordinator, name: "sessionInfo")
         contentController.add(coordinator, name: "settingsVisible")
+        contentController.add(coordinator, name: "saveButtonAppeared")
 
         // Inject background time offset script at document start (must run before page scripts)
         let backgroundTimeScript = WKUserScript(
@@ -77,6 +78,14 @@ struct TimerWebView: UIViewRepresentable {
         )
         contentController.addUserScript(settingsVisibilityScript)
 
+        // Inject save button observer script (detects end of set)
+        let saveButtonScript = WKUserScript(
+            source: JavaScriptBridge.saveButtonObserverScript,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(saveButtonScript)
+
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = coordinator
         coordinator.setWebView(webView)
@@ -102,5 +111,6 @@ struct TimerWebView: UIViewRepresentable {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "weightOptions")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "sessionInfo")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "settingsVisible")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "saveButtonAppeared")
     }
 }

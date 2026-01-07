@@ -60,8 +60,8 @@ class BluetoothManager: NSObject, ObservableObject {
     /// Background inactivity disconnect timer (internal for testability)
     var backgroundDisconnectTimer: Timer?
 
-    /// Callback when force samples are received
-    var onForceSample: ((Float) -> Void)?
+    /// Callback when force samples are received (force value, timestamp in microseconds)
+    var onForceSample: ((Float, UInt32) -> Void)?
 
     override init() {
         super.init()
@@ -287,8 +287,8 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
         // Create service handler and discover services
         progressorService = ProgressorService(peripheral: peripheral)
-        progressorService?.onForceSample = { [weak self] force in
-            self?.onForceSample?(force)
+        progressorService?.onForceSample = { [weak self] force, timestamp in
+            self?.onForceSample?(force, timestamp)
         }
         progressorService?.onDiscoveryTimeout = { [weak self] in
             guard let self = self else { return }

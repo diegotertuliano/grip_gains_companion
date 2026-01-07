@@ -26,6 +26,9 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     /// Callback when settings screen visibility changes (false = gripping in progress)
     var onSettingsVisibleChanged: ((Bool) -> Void)?
 
+    /// Callback when "Save to Database" button appears (end of set)
+    var onSaveButtonAppeared: (() -> Void)?
+
     override init() {
         super.init()
     }
@@ -107,6 +110,11 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
                 if let isVisible = message.body as? Bool {
                     self?.onSettingsVisibleChanged?(isVisible)
                 }
+            }
+
+        case "saveButtonAppeared":
+            DispatchQueue.main.async { [weak self] in
+                self?.onSaveButtonAppeared?()
             }
 
         default:

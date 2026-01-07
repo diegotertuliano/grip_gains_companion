@@ -208,6 +208,10 @@ struct ContentView: View {
     @State private var scrapedSide: String? = nil
     @State private var isSettingsVisible: Bool = true  // Whether advanced-settings-header is visible in web UI
 
+    // Rep/Set Statistics
+    @StateObject private var repTracker = RepTracker()
+    @State private var showSetReview: Bool = false
+
     private let webCoordinator = WebViewCoordinator()
 
     private var preferredScheme: ColorScheme? {
@@ -354,7 +358,8 @@ struct ContentView: View {
                 progressorHandler.recalibrate()
                 webCoordinator.refreshButtonState()
             },
-            scrapedTargetWeight: scrapedTargetWeight
+            scrapedTargetWeight: scrapedTargetWeight,
+            progressorHandler: progressorHandler
         )
     }
 
@@ -382,6 +387,24 @@ struct ContentView: View {
             .overlay { settingsButtonOverlay }
             .overlay { floatingWeightControlOverlay }
             .sheet(isPresented: $showSettings) { settingsSheet }
+            .sheet(isPresented: $showSetReview) { setReviewSheet }
+    }
+
+    // MARK: - Set Review Sheet
+
+    private var setReviewSheet: some View {
+        Group {
+            if let stats = repTracker.setStatistics {
+                SetReviewSheet(
+                    stats: stats,
+                    useLbs: useLbs,
+                    onDismiss: {
+                        showSetReview = false
+                        repTracker.resetForNewSet()
+                    }
+                )
+            }
+        }
     }
 
     private var mainContentWithTargetHandlers: some View {
@@ -702,9 +725,10 @@ struct ContentView: View {
         }
 
         // WebView session info (gripper type, side)
-        webCoordinator.onSessionInfoChanged = { gripper, side in
+        webCoordinator.onSessionInfoChanged = { [repTracker] gripper, side in
             scrapedGripper = gripper
             scrapedSide = side
+            repTracker.updateSessionContext(gripper: gripper, side: side)
         }
 
         // WebView advanced-settings-header visibility
@@ -712,9 +736,14 @@ struct ContentView: View {
             isSettingsVisible = visible
         }
 
+        // WebView save button appeared (end of set)
+        webCoordinator.onSaveButtonAppeared = { [repTracker] in
+            repTracker.completeSet()
+        }
+
         // BLE force samples -> Handler
-        bluetoothManager.onForceSample = { force in
-            progressorHandler.processSample(force)
+        bluetoothManager.onForceSample = { force, timestamp in
+            progressorHandler.processSample(force, timestamp: timestamp)
         }
 
         // Handler grip failed -> Click fail button and end Live Activity
@@ -737,6 +766,28 @@ struct ContentView: View {
                 Log.app.info("Calibration complete")
                 if UserDefaults.standard.object(forKey: "enableHaptics") as? Bool ?? true {
                     HapticManager.light()
+                }
+            }
+            .store(in: &cancellables)
+
+        // Handler grip disengaged -> Record rep
+        progressorHandler.gripDisengaged
+            .receive(on: DispatchQueue.main)
+            .sink { [repTracker, progressorHandler] duration, samples in
+                repTracker.recordRep(
+                    duration: duration,
+                    samples: samples,
+                    targetWeight: progressorHandler.targetWeight
+                )
+            }
+            .store(in: &cancellables)
+
+        // Set summary -> Show review sheet (if enabled)
+        repTracker.showSetSummary
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                if UserDefaults.standard.object(forKey: "showSetReview") as? Bool ?? false {
+                    showSetReview = true
                 }
             }
             .store(in: &cancellables)
