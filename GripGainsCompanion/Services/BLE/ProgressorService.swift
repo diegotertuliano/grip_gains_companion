@@ -7,8 +7,8 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
     private var writeCharacteristic: CBCharacteristic?
     private var discoveryTimer: Timer?
 
-    /// Callback when a force sample is received
-    var onForceSample: ((Float) -> Void)?
+    /// Callback when force samples are received (force value, timestamp in microseconds)
+    var onForceSample: ((Float, UInt32) -> Void)?
 
     /// Callback when discovery times out
     var onDiscoveryTimeout: (() -> Void)?
@@ -161,36 +161,28 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
     // MARK: - Data Parsing
 
     /// Parse incoming BLE notification data
-    /// From working watchOS app: data[0] == 1 and bytes 2-5 as little-endian float
+    /// Tindeq batches ~16 samples per notification, each with weight + timestamp
     private func parseNotification(_ data: Data) {
-        do {
-            let weight = try parseWeightData(data)
-            onForceSample?(weight)
-        } catch {
-            // Only log actual errors, not expected packet type filtering
-            if case ParseError.invalidPacketType = error {
-                // Silently ignore non-weight packets
-            } else {
-                Log.ble.debug("Parse error: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    /// Parse weight data from BLE packet
-    /// - Throws: ParseError if data is invalid
-    private func parseWeightData(_ data: Data) throws -> Float {
-        guard data.count >= ProgressorProtocol.packetMinSize else {
-            throw ParseError.insufficientData(data.count)
+        // Verify packet type and minimum size
+        guard data.count >= ProgressorProtocol.packetMinSize,
+              data[0] == ProgressorProtocol.weightDataPacketType else {
+            return
         }
 
-        let packetType = data[0]
-        guard packetType == ProgressorProtocol.weightDataPacketType else {
-            throw ParseError.invalidPacketType(packetType)
+        // Parse ALL samples from notification (Tindeq batches ~16 samples per notification)
+        // Each sample: 4-byte float (weight) + 4-byte uint32 (microseconds) = 8 bytes
+        let sampleSize = AppConstants.sampleSize  // 8 bytes
+        let payload = data.dropFirst(2)  // Skip packet type and count byte
+
+        for offset in stride(from: 0, to: payload.count - sampleSize + 1, by: sampleSize) {
+            let startIndex = payload.startIndex + offset
+            let weightData = payload[startIndex..<(startIndex + 4)]
+            let timeData = payload[(startIndex + 4)..<(startIndex + 8)]
+
+            let weight = weightData.withUnsafeBytes { $0.load(as: Float.self) }
+            let timestamp = timeData.withUnsafeBytes { $0.load(as: UInt32.self) }
+
+            onForceSample?(weight, timestamp)
         }
-
-        let floatData = data.subdata(in: ProgressorProtocol.floatDataStart..<ProgressorProtocol.floatDataEnd)
-        let weight = floatData.withUnsafeBytes { $0.load(as: Float.self) }
-
-        return weight
     }
 }

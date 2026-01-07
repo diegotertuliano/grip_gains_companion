@@ -11,6 +11,7 @@ final class ProgressorHandlerTests: XCTestCase {
         super.setUp()
         handler = ProgressorHandler()
         cancellables = []
+        testTimestamp = 0
     }
 
     override func tearDown() {
@@ -20,6 +21,15 @@ final class ProgressorHandlerTests: XCTestCase {
     }
 
     // MARK: - Test Helpers
+
+    /// Simulated device timestamp counter (microseconds)
+    private var testTimestamp: UInt32 = 0
+
+    /// Process a sample with auto-incrementing timestamp (~80Hz = 12500 microseconds between samples)
+    private func processTestSample(_ weight: Float) {
+        testTimestamp += 12500
+        handler.processSample(weight, timestamp: testTimestamp)
+    }
 
     /// Wait for async dispatch to complete
     private func waitForMainQueue() {
@@ -33,7 +43,7 @@ final class ProgressorHandlerTests: XCTestCase {
     /// Set up handler in idle state with baseline = 0 (skips calibration)
     private func setupIdleStateWithZeroBaseline() {
         handler.enableCalibration = false
-        handler.processSample(0)  // First sample triggers transition to idle with baseline 0
+        processTestSample(0)  // First sample triggers transition to idle with baseline 0
         waitForMainQueue()
     }
 
@@ -338,7 +348,7 @@ final class ProgressorHandlerTests: XCTestCase {
 
         // Raw weight 2.5 → tared weight = 2.5 (below 3.0 threshold)
         // Should NOT engage because tared weight < threshold
-        handler.processSample(2.5)
+        processTestSample(2.5)
         waitForMainQueue()
 
         XCTAssertFalse(handler.engaged, "Should NOT engage when tared weight (2.5) < threshold (3.0)")
@@ -346,7 +356,7 @@ final class ProgressorHandlerTests: XCTestCase {
 
         // Raw weight 3.0 → tared weight = 3.0 (equals 3.0 threshold)
         // SHOULD engage because tared weight >= threshold
-        handler.processSample(3.0)
+        processTestSample(3.0)
         waitForMainQueue()
 
         XCTAssertTrue(handler.engaged, "SHOULD engage when tared weight (3.0) >= threshold (3.0)")
@@ -365,13 +375,13 @@ final class ProgressorHandlerTests: XCTestCase {
             .store(in: &cancellables)
 
         // Engage with raw weight 5.0 (tared = 5.0, well above threshold)
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should be engaged")
 
         // Raw weight 0.5 → tared weight = 0.5 (below 1.0 fail threshold)
         // Should trigger failure because TARED weight < fail threshold
-        handler.processSample(0.5)
+        processTestSample(0.5)
 
         wait(for: [failedExpectation], timeout: 1.0)
         XCTAssertFalse(handler.engaged, "Should no longer be engaged after failure")
@@ -388,7 +398,7 @@ final class ProgressorHandlerTests: XCTestCase {
         let rawSamples: [Float] = [15.0, 16.0, 17.0]
 
         for sample in rawSamples {
-            handler.processSample(sample)
+            processTestSample(sample)
             waitForMainQueue()
         }
 
@@ -413,7 +423,7 @@ final class ProgressorHandlerTests: XCTestCase {
 
         // Process a sample - should store raw weight in history
         let rawWeight: Float = 15.0
-        handler.processSample(rawWeight)
+        processTestSample(rawWeight)
         waitForMainQueue()
 
         // Force history should contain the raw weight
@@ -430,7 +440,7 @@ final class ProgressorHandlerTests: XCTestCase {
 
         // Process a sample
         let rawWeight: Float = 12.0
-        handler.processSample(rawWeight)
+        processTestSample(rawWeight)
         waitForMainQueue()
 
         // currentForce should be the raw weight
@@ -448,13 +458,13 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.weightTolerance = 0.5
 
         // First sample engages but doesn't check off-target yet
-        handler.processSample(11.0)
+        processTestSample(11.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should be engaged")
 
         // Second sample while gripping triggers off-target check
         // Raw weight 11.0 vs target 10.0 = +1.0 difference (off by 0.5 tolerance)
-        handler.processSample(11.0)
+        processTestSample(11.0)
         waitForMainQueue()
 
         XCTAssertTrue(handler.isOffTarget, "Should be off-target (raw 11.0 vs target 10.0)")
@@ -481,7 +491,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // At exactly the threshold
-        handler.processSample(engageThreshold)
+        processTestSample(engageThreshold)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at exactly the threshold")
     }
@@ -505,17 +515,17 @@ final class ProgressorHandlerTests: XCTestCase {
             .store(in: &cancellables)
 
         // Engage first
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At exactly the threshold - should still be gripping (not < threshold)
-        handler.processSample(failThreshold)
+        processTestSample(failThreshold)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should still be gripping at exactly fail threshold")
 
         // Below threshold - should fail
-        handler.processSample(failThreshold - 0.1)
+        processTestSample(failThreshold - 0.1)
 
         wait(for: [failedExpectation], timeout: 1.0)
         XCTAssertFalse(handler.engaged, "Should fail when below fail threshold")
@@ -531,7 +541,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.targetWeight = 10.0
 
         // Engage and build up state
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should be engaged before reset")
         XCTAssertFalse(handler.forceHistory.isEmpty, "Should have force history")
@@ -560,7 +570,7 @@ final class ProgressorHandlerTests: XCTestCase {
         XCTAssertTrue(handler.state.isWaitingForSamples, "Should start in waitingForSamples")
 
         // Process first sample
-        handler.processSample(1.0)
+        processTestSample(1.0)
         waitForMainQueue()
 
         XCTAssertTrue(handler.calibrating, "Should be calibrating after first sample")
@@ -577,11 +587,11 @@ final class ProgressorHandlerTests: XCTestCase {
 
         // Start a timer to send samples continuously during calibration
         let sampleTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            self?.handler.processSample(2.0)
+            self?.processTestSample(2.0)
         }
 
         // Process first sample to start calibration
-        handler.processSample(2.0)
+        processTestSample(2.0)
         waitForMainQueue()
         XCTAssertTrue(handler.calibrating)
 
@@ -605,7 +615,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = false  // Key condition
 
         // Apply weight above engage threshold
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
 
         // Should be in weight calibration, not gripping
@@ -624,11 +634,11 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = false
 
         // Hold weight with varying samples
-        handler.processSample(10.0)
+        processTestSample(10.0)
         waitForMainQueue()
-        handler.processSample(12.0)
+        processTestSample(12.0)
         waitForMainQueue()
-        handler.processSample(11.0)
+        processTestSample(11.0)
         waitForMainQueue()
 
         // Median of [10, 12, 11] = 11.0
@@ -642,7 +652,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = false
 
         // Start holding
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
 
         if case .weightCalibration(_, _, let isHolding) = handler.state {
@@ -652,7 +662,7 @@ final class ProgressorHandlerTests: XCTestCase {
         }
 
         // Release below engage threshold but above fail threshold
-        handler.processSample(2.0)  // Between 1.0 (fail) and 3.0 (engage)
+        processTestSample(2.0)  // Between 1.0 (fail) and 3.0 (engage)
         waitForMainQueue()
 
         if case .weightCalibration(_, _, let isHolding) = handler.state {
@@ -671,7 +681,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = false
 
         // Start in weight calibration
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertFalse(handler.engaged)
 
@@ -679,7 +689,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Next sample should transition to gripping
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
 
         XCTAssertTrue(handler.engaged, "Should be engaged after canEngage becomes true")
@@ -697,11 +707,11 @@ final class ProgressorHandlerTests: XCTestCase {
 
         // Start a timer to send samples continuously during calibration
         let sampleTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            self?.handler.processSample(5.0)
+            self?.processTestSample(5.0)
         }
 
         // Send first sample during calibration (will become baseline)
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
 
         // Wait for calibration
@@ -717,7 +727,7 @@ final class ProgressorHandlerTests: XCTestCase {
         let rawSamples: [Float] = [15.0, 16.0, 17.0]  // All above engage threshold (baseline + 3.0 = 8.0)
 
         for sample in rawSamples {
-            handler.processSample(sample)
+            processTestSample(sample)
             waitForMainQueue()
         }
 
@@ -740,10 +750,10 @@ final class ProgressorHandlerTests: XCTestCase {
 
         // Start a timer to send samples continuously during calibration
         let sampleTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            self?.handler.processSample(5.0)
+            self?.processTestSample(5.0)
         }
 
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         wait(for: [calibrationExpectation], timeout: 6.0)
         sampleTimer.invalidate()
@@ -754,17 +764,17 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage with on-target weight
-        handler.processSample(15.0)
+        processTestSample(15.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // Second sample to trigger off-target check (still on target)
-        handler.processSample(15.0)
+        processTestSample(15.0)
         waitForMainQueue()
         XCTAssertFalse(handler.isOffTarget, "Should be on target at 15.0")
 
         // Now go off target with raw weight 16.5 (1.5 over target)
-        handler.processSample(16.5)
+        processTestSample(16.5)
         waitForMainQueue()
 
         XCTAssertTrue(handler.isOffTarget, "Should be off target at raw 16.5 vs target 15.0")
@@ -811,7 +821,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // With fixed thresholds (default 3.0kg), should engage at 3kg
-        handler.processSample(3.0)
+        processTestSample(3.0)
         waitForMainQueue()
 
         XCTAssertTrue(handler.engaged, "Should engage at 3kg using fixed threshold, not 10kg (50% of 20)")
@@ -831,18 +841,18 @@ final class ProgressorHandlerTests: XCTestCase {
             .store(in: &cancellables)
 
         // Engage first
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 2.0kg - above fixed threshold (1.0kg) but below percentage (4kg)
         // Should still be engaged because fixed threshold is used
-        handler.processSample(2.0)
+        processTestSample(2.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should still be engaged at 2kg using fixed threshold (1kg), not percentage (4kg)")
 
         // Below fixed threshold (1.0kg) - should disengage
-        handler.processSample(0.9)
+        processTestSample(0.9)
 
         wait(for: [failedExpectation], timeout: 1.0)
         XCTAssertFalse(handler.engaged, "Should disengage below 1kg using fixed threshold")
@@ -858,19 +868,19 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 20.8kg - 0.8kg off target
         // Above fixed tolerance (0.5kg) but below percentage (2kg)
         // Should be OFF target because fixed tolerance is used
-        handler.processSample(20.8)
+        processTestSample(20.8)
         waitForMainQueue()
         XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 20.8kg using fixed tolerance (0.5kg), not percentage (2kg)")
 
         // At 20.3kg - 0.3kg off target, within fixed tolerance
-        handler.processSample(20.3)
+        processTestSample(20.3)
         waitForMainQueue()
         XCTAssertFalse(handler.isOffTarget, "Should be ON target at 20.3kg (within 0.5kg fixed tolerance)")
     }
@@ -881,13 +891,13 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // With percentage thresholds (50% of 20 = 10kg), should NOT engage at 3kg
-        handler.processSample(3.0)
+        processTestSample(3.0)
         waitForMainQueue()
 
         XCTAssertFalse(handler.engaged, "Should NOT engage at 3kg when percentage threshold is 10kg (50% of 20)")
 
         // Should engage at 10kg
-        handler.processSample(10.0)
+        processTestSample(10.0)
         waitForMainQueue()
 
         XCTAssertTrue(handler.engaged, "Should engage at 10kg (50% of 20kg target)")
@@ -902,12 +912,12 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Below threshold
-        handler.processSample(9.9)
+        processTestSample(9.9)
         waitForMainQueue()
         XCTAssertFalse(handler.engaged, "Should NOT engage at 9.9kg (below 10kg threshold)")
 
         // At threshold
-        handler.processSample(10.0)
+        processTestSample(10.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at 10kg (50% of 20kg)")
     }
@@ -925,17 +935,17 @@ final class ProgressorHandlerTests: XCTestCase {
             .store(in: &cancellables)
 
         // Engage
-        handler.processSample(10.0)
+        processTestSample(10.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 4kg threshold - should NOT fail (uses <, not <=)
-        handler.processSample(4.0)
+        processTestSample(4.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should still be engaged at exactly 4kg (20% threshold)")
 
         // Below 4kg - should fail
-        handler.processSample(3.9)
+        processTestSample(3.9)
 
         wait(for: [failedExpectation], timeout: 1.0)
         XCTAssertFalse(handler.engaged, "Should disengage below 4kg (20% of 20kg)")
@@ -948,22 +958,22 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage
-        handler.processSample(12.0)
+        processTestSample(12.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // On target at 20.0
-        handler.processSample(20.0)
+        processTestSample(20.0)
         waitForMainQueue()
         XCTAssertFalse(handler.isOffTarget, "Should be on target at exactly 20kg")
 
         // Just within tolerance at 20.9
-        handler.processSample(20.9)
+        processTestSample(20.9)
         waitForMainQueue()
         XCTAssertFalse(handler.isOffTarget, "Should be on target at 20.9kg (within 1kg tolerance)")
 
         // At tolerance boundary at 21.0
-        handler.processSample(21.0)
+        processTestSample(21.0)
         waitForMainQueue()
         XCTAssertTrue(handler.isOffTarget, "Should be off target at 21kg (exactly at 5% tolerance boundary)")
     }
@@ -976,7 +986,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Should engage at 2.5kg (50% of 5)
-        handler.processSample(2.5)
+        processTestSample(2.5)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at 2.5kg for 5kg target")
     }
@@ -987,12 +997,12 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Should NOT engage at 7.4kg
-        handler.processSample(7.4)
+        processTestSample(7.4)
         waitForMainQueue()
         XCTAssertFalse(handler.engaged, "Should NOT engage at 7.4kg for 15kg target")
 
         // Should engage at 7.5kg
-        handler.processSample(7.5)
+        processTestSample(7.5)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at 7.5kg (50% of 15kg)")
     }
@@ -1003,7 +1013,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Should engage at 15kg
-        handler.processSample(15.0)
+        processTestSample(15.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at 15kg (50% of 30kg)")
     }
@@ -1015,7 +1025,7 @@ final class ProgressorHandlerTests: XCTestCase {
         setupWithPercentageThresholds(target: 20.0, engage: 0.50)
         handler.canEngage = true
 
-        handler.processSample(10.0)  // Exactly 50% of 20
+        processTestSample(10.0)  // Exactly 50% of 20
         waitForMainQueue()
 
         XCTAssertTrue(handler.engaged, "Should engage at exactly the percentage threshold")
@@ -1026,7 +1036,7 @@ final class ProgressorHandlerTests: XCTestCase {
         setupWithPercentageThresholds(target: 20.0, engage: 0.50)
         handler.canEngage = true
 
-        handler.processSample(9.99)  // Just below 50% of 20
+        processTestSample(9.99)  // Just below 50% of 20
         waitForMainQueue()
 
         XCTAssertFalse(handler.engaged, "Should NOT engage below percentage threshold")
@@ -1043,12 +1053,12 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage first
-        handler.processSample(10.0)
+        processTestSample(10.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At exactly disengage threshold (4kg = 20% of 20)
-        handler.processSample(4.0)
+        processTestSample(4.0)
         waitForMainQueue()
 
         XCTAssertTrue(handler.engaged, "Should still be engaged at exactly the disengage threshold (uses < not <=)")
@@ -1065,12 +1075,12 @@ final class ProgressorHandlerTests: XCTestCase {
             .store(in: &cancellables)
 
         // Engage first
-        handler.processSample(10.0)
+        processTestSample(10.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // Below disengage threshold
-        handler.processSample(3.99)
+        processTestSample(3.99)
 
         wait(for: [failedExpectation], timeout: 1.0)
         XCTAssertFalse(handler.engaged, "Should disengage below percentage threshold")
@@ -1083,12 +1093,12 @@ final class ProgressorHandlerTests: XCTestCase {
         setupWithPercentageThresholds(target: 20.0, tolerance: 0.05)  // 5% = 1kg tolerance
         handler.canEngage = true
 
-        handler.processSample(12.0)
+        processTestSample(12.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // Within tolerance
-        handler.processSample(20.5)  // 0.5kg off, tolerance is 1kg
+        processTestSample(20.5)  // 0.5kg off, tolerance is 1kg
         waitForMainQueue()
 
         XCTAssertFalse(handler.isOffTarget, "Should be on target when within percentage tolerance")
@@ -1099,12 +1109,12 @@ final class ProgressorHandlerTests: XCTestCase {
         setupWithPercentageThresholds(target: 20.0, tolerance: 0.05)  // 5% = 1kg tolerance
         handler.canEngage = true
 
-        handler.processSample(12.0)
+        processTestSample(12.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // Outside tolerance
-        handler.processSample(21.5)  // 1.5kg off, tolerance is 1kg
+        processTestSample(21.5)  // 1.5kg off, tolerance is 1kg
         waitForMainQueue()
 
         XCTAssertTrue(handler.isOffTarget, "Should be off target when outside percentage tolerance")
@@ -1115,17 +1125,17 @@ final class ProgressorHandlerTests: XCTestCase {
         setupWithPercentageThresholds(target: 20.0, tolerance: 0.05)
         handler.canEngage = true
 
-        handler.processSample(12.0)
+        processTestSample(12.0)
         waitForMainQueue()
 
         // Too heavy
-        handler.processSample(22.0)
+        processTestSample(22.0)
         waitForMainQueue()
         XCTAssertTrue(handler.isOffTarget)
         XCTAssertEqual(handler.offTargetDirection!, 2.0, accuracy: 0.01, "Direction should be positive for too heavy")
 
         // Too light
-        handler.processSample(18.0)
+        processTestSample(18.0)
         waitForMainQueue()
         XCTAssertTrue(handler.isOffTarget)
         XCTAssertEqual(handler.offTargetDirection!, -2.0, accuracy: 0.01, "Direction should be negative for too light")
@@ -1140,12 +1150,12 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage at 10kg (50% of 20)
-        handler.processSample(10.0)
+        processTestSample(10.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 9kg (45% = disengage threshold), should still be engaged
-        handler.processSample(9.0)
+        processTestSample(9.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should still be engaged at exactly disengage threshold")
     }
@@ -1158,7 +1168,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Should NOT engage at 5kg (50% of 20 = 10kg threshold)
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertFalse(handler.engaged, "Should NOT engage at 5kg with 20kg target")
 
@@ -1171,7 +1181,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.targetWeight = 10.0
 
         // Now should engage at 5kg (50% of 10 = 5kg threshold)
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at 5kg with 10kg target")
     }
@@ -1185,7 +1195,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Should fall back to fixed threshold (3.0kg default)
-        handler.processSample(3.0)
+        processTestSample(3.0)
         waitForMainQueue()
 
         XCTAssertTrue(handler.engaged, "Should use fixed 3kg threshold when no target is set")
@@ -1203,7 +1213,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // 50% of 0 = 0, so should engage at any positive force
-        handler.processSample(0.1)
+        processTestSample(0.1)
         waitForMainQueue()
 
         // With 0 target, 50% = 0kg threshold, so 0.1 >= 0 should engage
@@ -1252,12 +1262,12 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // At 2.5kg - above percentage (1.5kg) but below floor (3kg)
-        handler.processSample(2.5)
+        processTestSample(2.5)
         waitForMainQueue()
         XCTAssertFalse(handler.engaged, "Should NOT engage at 2.5kg when floor is 3kg")
 
         // At 3.0kg - at floor
-        handler.processSample(3.0)
+        processTestSample(3.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at floor (3kg)")
     }
@@ -1280,13 +1290,13 @@ final class ProgressorHandlerTests: XCTestCase {
             .store(in: &cancellables)
 
         // Engage
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 1.5kg - below percentage (1kg) but still at/above floor (2kg)? No, 1.5 < 2
         // Should fail because 1.5 < floor (2kg)
-        handler.processSample(1.5)
+        processTestSample(1.5)
 
         wait(for: [failedExpectation], timeout: 1.0)
         XCTAssertFalse(handler.engaged, "Should disengage at 1.5kg when floor is 2kg")
@@ -1304,17 +1314,17 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 5.5kg - 0.5kg off, which is > percentage (0.25kg) but < floor (1kg)
-        handler.processSample(5.5)
+        processTestSample(5.5)
         waitForMainQueue()
         XCTAssertFalse(handler.isOffTarget, "Should be ON target at 5.5kg when tolerance floor is 1kg")
 
         // At 6.0kg - 1.0kg off, exactly at floor tolerance
-        handler.processSample(6.0)
+        processTestSample(6.0)
         waitForMainQueue()
         XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 6kg (1kg off, floor tolerance is 1kg)")
     }
@@ -1332,7 +1342,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // At 20kg - at ceiling
-        handler.processSample(20.0)
+        processTestSample(20.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at ceiling (20kg) not percentage (50kg)")
     }
@@ -1355,12 +1365,12 @@ final class ProgressorHandlerTests: XCTestCase {
             .store(in: &cancellables)
 
         // Engage
-        handler.processSample(25.0)
+        processTestSample(25.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 4.9kg - below ceiling (5kg)
-        handler.processSample(4.9)
+        processTestSample(4.9)
 
         wait(for: [failedExpectation], timeout: 1.0)
         XCTAssertFalse(handler.engaged, "Should disengage below 5kg (ceiling) not 20kg (percentage)")
@@ -1378,17 +1388,17 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage
-        handler.processSample(100.0)
+        processTestSample(100.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 102.5kg - 2.5kg off, which is < percentage (5kg) but > ceiling (2kg)
-        handler.processSample(102.5)
+        processTestSample(102.5)
         waitForMainQueue()
         XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 102.5kg when tolerance ceiling is 2kg")
 
         // At 101.5kg - 1.5kg off, within ceiling tolerance
-        handler.processSample(101.5)
+        processTestSample(101.5)
         waitForMainQueue()
         XCTAssertFalse(handler.isOffTarget, "Should be ON target at 101.5kg (1.5kg off, ceiling tolerance is 2kg)")
     }
@@ -1404,11 +1414,11 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage at 10kg (pure percentage, no clamping)
-        handler.processSample(9.9)
+        processTestSample(9.9)
         waitForMainQueue()
         XCTAssertFalse(handler.engaged, "Should NOT engage at 9.9kg (below 10kg threshold)")
 
-        handler.processSample(10.0)
+        processTestSample(10.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at exactly 10kg (50% of 20kg, no clamping)")
     }
@@ -1426,7 +1436,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // At 1.5kg - exactly at percentage
-        handler.processSample(1.5)
+        processTestSample(1.5)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at 1.5kg (50% of 3kg) when floor is disabled")
     }
@@ -1443,17 +1453,17 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 5.3kg - 0.3kg off, which is > percentage (0.25kg)
-        handler.processSample(5.3)
+        processTestSample(5.3)
         waitForMainQueue()
         XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 5.3kg when floor disabled (0.25kg tolerance)")
 
         // At 5.2kg - 0.2kg off, which is < percentage (0.25kg)
-        handler.processSample(5.2)
+        processTestSample(5.2)
         waitForMainQueue()
         XCTAssertFalse(handler.isOffTarget, "Should be ON target at 5.2kg when floor disabled (0.25kg tolerance)")
     }
@@ -1471,7 +1481,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // At exactly floor/percentage (5kg)
-        handler.processSample(5.0)
+        processTestSample(5.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged, "Should engage at 5kg (matches both floor and percentage)")
     }
@@ -1488,17 +1498,17 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage
-        handler.processSample(20.0)
+        processTestSample(20.0)
         waitForMainQueue()
         XCTAssertTrue(handler.engaged)
 
         // At 20.9kg - 0.9kg off (within 1kg tolerance, no clamping)
-        handler.processSample(20.9)
+        processTestSample(20.9)
         waitForMainQueue()
         XCTAssertFalse(handler.isOffTarget, "Should be ON target at 20.9kg (0.9kg < 1kg tolerance)")
 
         // At 21.1kg - 1.1kg off (exceeds 1kg tolerance)
-        handler.processSample(21.1)
+        processTestSample(21.1)
         waitForMainQueue()
         XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 21.1kg (1.1kg > 1kg tolerance)")
     }

@@ -6,10 +6,10 @@ import Combine
 /// Explicit state for the Progressor force handler
 enum ProgressorState: Equatable {
     case waitingForSamples
-    case calibrating(startTime: Date, samples: [Float])
+    case calibrating(startTime: Date, samples: [TimestampedSample])
     case idle(baseline: Float)
-    case gripping(baseline: Float, startTime: Date, samples: [Float])
-    case weightCalibration(baseline: Float, samples: [Float], isHolding: Bool)
+    case gripping(baseline: Float, startTimestamp: UInt32, samples: [TimestampedSample])
+    case weightCalibration(baseline: Float, samples: [TimestampedSample], isHolding: Bool)
 
     // Convenience computed properties for UI
     var isCalibrating: Bool {
@@ -50,15 +50,22 @@ class ProgressorHandler: ObservableObject {
     @Published private(set) var sessionMean: Float?
     @Published private(set) var sessionStdDev: Float?
 
-    // Force history for graph (timestamp, force in kg)
+    // Force history for graph (timestamp, force value)
     @Published private(set) var forceHistory: [(timestamp: Date, force: Float)] = []
+
+    // Last device timestamp received (microseconds) - used for elapsed time calculation
+    private var lastTimestamp: UInt32 = 0
+
+    // Reference point for converting device timestamps to display timestamps
+    private var firstDeviceTimestamp: UInt32?
+    private var firstDisplayTimestamp: Date?
 
     // MARK: - Target Weight State
 
-    /// Target weight from website or manual input (in kg)
+    /// Target weight from website or manual input
     var targetWeight: Float?
 
-    /// Tolerance for off-target detection (in kg)
+    /// Tolerance for off-target detection
     var weightTolerance: Float = AppConstants.defaultWeightTolerance
 
     /// Whether current weight is off target (only valid during gripping)
@@ -130,35 +137,32 @@ class ProgressorHandler: ObservableObject {
     /// Maximum tolerance in kg (0 = disabled, use pure percentage)
     var toleranceCeiling: Float = AppConstants.defaultToleranceCeiling
 
+    /// Apply floor and ceiling bounds to a value (0 = disabled for that bound)
+    private func applyBounds(_ value: Float, floor: Float, ceiling: Float) -> Float {
+        let floored = floor > 0 ? max(value, floor) : value
+        return ceiling > 0 ? min(floored, ceiling) : floored
+    }
+
     /// Effective engage threshold - uses percentage if enabled, otherwise fixed kg
-    /// When percentage mode is enabled, applies floor/ceiling bounds (0 = disabled)
     private var effectiveEngageThreshold: Float {
         if enablePercentageThresholds, let target = targetWeight {
-            let raw = target * engagePercentage
-            let floored = engageFloor > 0 ? max(raw, engageFloor) : raw
-            return engageCeiling > 0 ? min(floored, engageCeiling) : floored
+            return applyBounds(target * engagePercentage, floor: engageFloor, ceiling: engageCeiling)
         }
         return engageThreshold
     }
 
     /// Effective fail threshold - uses percentage if enabled, otherwise fixed kg
-    /// When percentage mode is enabled, applies floor/ceiling bounds (0 = disabled)
     private var effectiveFailThreshold: Float {
         if enablePercentageThresholds, let target = targetWeight {
-            let raw = target * disengagePercentage
-            let floored = disengageFloor > 0 ? max(raw, disengageFloor) : raw
-            return disengageCeiling > 0 ? min(floored, disengageCeiling) : floored
+            return applyBounds(target * disengagePercentage, floor: disengageFloor, ceiling: disengageCeiling)
         }
         return failThreshold
     }
 
     /// Effective tolerance - uses percentage if enabled, otherwise fixed kg
-    /// When percentage mode is enabled, applies floor/ceiling bounds (0 = disabled)
     private var effectiveTolerance: Float {
         if enablePercentageThresholds, let target = targetWeight {
-            let raw = target * tolerancePercentage
-            let floored = toleranceFloor > 0 ? max(raw, toleranceFloor) : raw
-            return toleranceCeiling > 0 ? min(floored, toleranceCeiling) : floored
+            return applyBounds(target * tolerancePercentage, floor: toleranceFloor, ceiling: toleranceCeiling)
         }
         return weightTolerance
     }
@@ -171,39 +175,54 @@ class ProgressorHandler: ObservableObject {
 
     /// Elapsed seconds since grip started (0 if not gripping)
     var gripElapsedSeconds: Int {
-        if case .gripping(_, let startTime, _) = state {
-            return Int(Date().timeIntervalSince(startTime))
+        if case .gripping(_, let startTimestamp, _) = state {
+            return Int((lastTimestamp - startTimestamp) / 1_000_000)
         }
         return 0
     }
 
     // MARK: - Public Methods
 
-    /// Process a single weight sample from the BLE device
-    func processSample(_ rawWeight: Float) {
+    /// Process a single force sample from the BLE device
+    /// - Parameters:
+    ///   - rawWeight: Force value from device
+    ///   - timestamp: Device timestamp in microseconds
+    func processSample(_ rawWeight: Float, timestamp: UInt32) {
         DispatchQueue.main.async { [self] in
             currentForce = rawWeight
-            forceHistory.append((timestamp: Date(), force: rawWeight))
-            processStateTransition(rawWeight: rawWeight)
+            lastTimestamp = timestamp
+
+            // Calculate display timestamp from device timestamp to properly space batched samples
+            let displayTimestamp: Date
+            if let firstDevice = firstDeviceTimestamp, let firstDisplay = firstDisplayTimestamp {
+                // Calculate offset from first sample in microseconds, convert to seconds
+                let offsetMicros = timestamp - firstDevice
+                displayTimestamp = firstDisplay.addingTimeInterval(Double(offsetMicros) / 1_000_000.0)
+            } else {
+                // First sample - establish reference point
+                firstDeviceTimestamp = timestamp
+                firstDisplayTimestamp = Date()
+                displayTimestamp = firstDisplayTimestamp!
+            }
+
+            forceHistory.append((timestamp: displayTimestamp, force: rawWeight))
+            processStateTransition(rawWeight: rawWeight, timestamp: timestamp)
         }
     }
 
     /// Reset handler state for a new session
     func reset() {
-        stopOffTargetTimer()
-        state = .waitingForSamples
+        resetCommonState()
         currentForce = 0.0
-        calibrationTimeRemaining = AppConstants.calibrationDuration
-        weightMedian = nil
-        isOffTarget = false
-        offTargetDirection = nil
-        sessionMean = nil
-        sessionStdDev = nil
-        forceHistory = []
     }
 
     /// Trigger recalibration - resets to waitingForSamples state
     func recalibrate() {
+        resetCommonState()
+    }
+
+    /// Common reset logic shared between reset() and recalibrate()
+    private func resetCommonState() {
         stopOffTargetTimer()
         state = .waitingForSamples
         calibrationTimeRemaining = AppConstants.calibrationDuration
@@ -213,17 +232,21 @@ class ProgressorHandler: ObservableObject {
         sessionMean = nil
         sessionStdDev = nil
         forceHistory = []
+        firstDeviceTimestamp = nil
+        firstDisplayTimestamp = nil
     }
 
     // MARK: - State Machine Logic
 
-    private func processStateTransition(rawWeight: Float) {
+    private func processStateTransition(rawWeight: Float, timestamp: UInt32) {
+        let sample = TimestampedSample(weight: rawWeight, timestamp: timestamp)
+
         switch state {
         case .waitingForSamples:
             // First sample received - start calibration or skip to idle
             forceHistory = []  // Clear history on new session
             if enableCalibration {
-                state = .calibrating(startTime: Date(), samples: [rawWeight])
+                state = .calibrating(startTime: Date(), samples: [sample])
                 calibrationTimeRemaining = AppConstants.calibrationDuration
             } else {
                 // Skip calibration - baseline is 0
@@ -233,12 +256,12 @@ class ProgressorHandler: ObservableObject {
             }
 
         case .calibrating(let startTime, var samples):
-            samples.append(rawWeight)
+            samples.append(sample)
             let elapsed = Date().timeIntervalSince(startTime)
             calibrationTimeRemaining = max(0, AppConstants.calibrationDuration - elapsed)
 
             if elapsed >= AppConstants.calibrationDuration {
-                let baseline = samples.reduce(0, +) / Float(samples.count)
+                let baseline = samples.map(\.weight).reduce(0, +) / Float(samples.count)
                 state = .idle(baseline: baseline)
                 calibrationTimeRemaining = 0
                 calibrationCompleted.send()
@@ -248,28 +271,30 @@ class ProgressorHandler: ObservableObject {
 
         case .idle(let baseline):
             let taredWeight = rawWeight - baseline
-            handleIdleState(rawWeight: rawWeight, taredWeight: taredWeight, baseline: baseline)
+            handleIdleState(rawWeight: rawWeight, taredWeight: taredWeight, baseline: baseline, timestamp: timestamp)
 
-        case .gripping(let baseline, let startTime, var samples):
-            samples.append(rawWeight)
+        case .gripping(let baseline, let startTimestamp, var samples):
+            samples.append(sample)
             let taredWeight = rawWeight - baseline
 
             // Calculate live statistics from raw samples
-            sessionMean = mean(samples)
-            sessionStdDev = standardDeviation(samples)
+            let weights = samples.map(\.weight)
+            sessionMean = mean(weights)
+            sessionStdDev = standardDeviation(weights)
 
             if taredWeight < effectiveFailThreshold {
                 // Grip failed - keep statistics for display after grip ends
                 stopOffTargetTimer()
-                let duration = Date().timeIntervalSince(startTime)
+                // Calculate duration from device timestamps (microseconds to seconds)
+                let duration = Double(timestamp - startTimestamp) / 1_000_000.0
                 state = .idle(baseline: baseline)
                 canEngage = false
                 isOffTarget = false
                 offTargetDirection = nil
                 gripFailed.send()
-                gripDisengaged.send((duration, samples))
+                gripDisengaged.send((duration, weights))
             } else {
-                state = .gripping(baseline: baseline, startTime: startTime, samples: samples)
+                state = .gripping(baseline: baseline, startTimestamp: startTimestamp, samples: samples)
                 checkOffTarget(rawWeight: rawWeight)
             }
             publishForceUpdate()
@@ -281,20 +306,22 @@ class ProgressorHandler: ObservableObject {
                 taredWeight: taredWeight,
                 baseline: baseline,
                 samples: &samples,
-                isHolding: isHolding
+                isHolding: isHolding,
+                timestamp: timestamp
             )
         }
     }
 
-    private func handleIdleState(rawWeight: Float, taredWeight: Float, baseline: Float) {
+    private func handleIdleState(rawWeight: Float, taredWeight: Float, baseline: Float, timestamp: UInt32) {
+        let sample = TimestampedSample(weight: rawWeight, timestamp: timestamp)
         if taredWeight >= effectiveEngageThreshold {
             if canEngage {
                 // Start real grip session
                 weightMedian = nil
-                state = .gripping(baseline: baseline, startTime: Date(), samples: [rawWeight])
+                state = .gripping(baseline: baseline, startTimestamp: timestamp, samples: [sample])
             } else {
                 // Start weight calibration
-                state = .weightCalibration(baseline: baseline, samples: [rawWeight], isHolding: true)
+                state = .weightCalibration(baseline: baseline, samples: [sample], isHolding: true)
                 weightMedian = rawWeight
             }
         }
@@ -305,27 +332,31 @@ class ProgressorHandler: ObservableObject {
         rawWeight: Float,
         taredWeight: Float,
         baseline: Float,
-        samples: inout [Float],
-        isHolding: Bool
+        samples: inout [TimestampedSample],
+        isHolding: Bool,
+        timestamp: UInt32
     ) {
+        let sample = TimestampedSample(weight: rawWeight, timestamp: timestamp)
+        let weights = samples.map(\.weight)
+
         if taredWeight >= effectiveEngageThreshold {
             if canEngage {
                 // Switch to real grip session
                 weightMedian = nil
-                state = .gripping(baseline: baseline, startTime: Date(), samples: [rawWeight])
+                state = .gripping(baseline: baseline, startTimestamp: timestamp, samples: [sample])
             } else if isHolding {
                 // Continue weight calibration
-                samples.append(rawWeight)
-                weightMedian = median(samples)
+                samples.append(sample)
+                weightMedian = median(samples.map(\.weight))
                 state = .weightCalibration(baseline: baseline, samples: samples, isHolding: true)
             } else {
                 // Re-engaging weight - start fresh
-                state = .weightCalibration(baseline: baseline, samples: [rawWeight], isHolding: true)
+                state = .weightCalibration(baseline: baseline, samples: [sample], isHolding: true)
                 weightMedian = rawWeight
             }
         } else if taredWeight < effectiveEngageThreshold && isHolding {
             // Put down weight - calculate final trimmed median and mark as not holding
-            weightMedian = trimmedMedian(samples)
+            weightMedian = trimmedMedian(weights)
             state = .weightCalibration(baseline: baseline, samples: samples, isHolding: false)
         } else if taredWeight < effectiveFailThreshold {
             // Completely released - back to idle but keep median
@@ -400,43 +431,21 @@ class ProgressorHandler: ObservableObject {
         offTargetTimer = nil
     }
 
-    // MARK: - Utilities
+    // MARK: - Statistics Utilities (delegating to shared implementation)
 
     func median(_ values: [Float]) -> Float {
-        guard !values.isEmpty else { return 0 }
-        let sorted = values.sorted()
-        let mid = sorted.count / 2
-        if sorted.count % 2 == 0 {
-            return (sorted[mid - 1] + sorted[mid]) / 2
-        } else {
-            return sorted[mid]
-        }
+        StatisticsUtilities.median(values)
     }
 
     func mean(_ values: [Float]) -> Float {
-        guard !values.isEmpty else { return 0 }
-        return values.reduce(0, +) / Float(values.count)
+        StatisticsUtilities.mean(values)
     }
 
     func standardDeviation(_ values: [Float]) -> Float {
-        guard values.count > 1 else { return 0 }
-        let avg = mean(values)
-        let variance = values.reduce(0) { $0 + pow($1 - avg, 2) } / Float(values.count - 1)
-        return sqrt(variance)
+        StatisticsUtilities.standardDeviation(values)
     }
 
-    /// Calculates median after trimming a fraction of samples from start and end.
-    /// Used to exclude transient pickup/release phases for more accurate weight detection.
     func trimmedMedian(_ values: [Float], trimFraction: Float = 0.3) -> Float {
-        guard values.count >= 5 else { return median(values) }
-
-        let trimCount = Int(Float(values.count) * trimFraction)
-        let startIndex = trimCount
-        let endIndex = values.count - trimCount
-
-        guard startIndex < endIndex else { return median(values) }
-
-        let trimmedValues = Array(values[startIndex..<endIndex])
-        return median(trimmedValues)
+        StatisticsUtilities.trimmedMedian(values, trimFraction: trimFraction)
     }
 }

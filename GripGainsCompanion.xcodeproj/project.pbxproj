@@ -36,6 +36,7 @@
 		7EEE2C022EF56E9900FD9EF1 /* GripGainsTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7EEE2BF32EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7EEE2C082EF571D400FD9EF1 /* GripTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085D2EF5188500206778 /* GripTimerAttributes.swift */; };
 		7EF8A5DB2EF5ABA5008B9D03 /* FloatingWeightControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EF8A5DA2EF5ABA5008B9D03 /* FloatingWeightControl.swift */; };
+		E2B3C4D5E6F7A8B9C0D1E3F4 /* TimestampedSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3C4D5E6F7A8B9C0D1E3F4 /* TimestampedSample.swift */; };
 		T001 /* WeightFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T101 /* WeightFormatterTests.swift */; };
 		T002 /* ProgressorHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T102 /* ProgressorHandlerTests.swift */; };
 		T003 /* WebViewCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T103 /* WebViewCoordinatorTests.swift */; };
@@ -103,6 +104,7 @@
 		7EEE2BD72EF56E0000FD9EF1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		7EEE2BF32EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GripGainsTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7EF8A5DA2EF5ABA5008B9D03 /* FloatingWeightControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWeightControl.swift; sourceTree = "<group>"; };
+		F2B3C4D5E6F7A8B9C0D1E3F4 /* TimestampedSample.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimestampedSample.swift; sourceTree = "<group>"; };
 		T100 /* GripGainsCompanionTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GripGainsCompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		T101 /* WeightFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightFormatterTests.swift; sourceTree = "<group>"; };
 		T102 /* ProgressorHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressorHandlerTests.swift; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 				7E69085D2EF5188500206778 /* GripTimerAttributes.swift */,
 				113 /* ProgressorDevice.swift */,
 				7EC12C942EF1196000A9D66C /* StatusBarState.swift */,
+				F2B3C4D5E6F7A8B9C0D1E3F4 /* TimestampedSample.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -443,6 +446,7 @@
 				014 /* DeviceScannerView.swift in Sources */,
 				015 /* SettingsView.swift in Sources */,
 				7E02DCD62EF23D4000C60B3B /* SoundManager.swift in Sources */,
+				E2B3C4D5E6F7A8B9C0D1E3F4 /* TimestampedSample.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
