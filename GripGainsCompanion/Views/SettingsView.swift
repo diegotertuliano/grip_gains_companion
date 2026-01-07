@@ -138,12 +138,16 @@ struct SettingsView: View {
                     Toggle("Enable Target Weight", isOn: $enableTargetWeight)
 
                     if enableTargetWeight {
-                    Toggle("Use Manual Target", isOn: $useManualTarget)
+                    Picker("Source", selection: $useManualTarget) {
+                        Text("Auto").tag(false)
+                        Text("Manual").tag(true)
+                    }
+                    .pickerStyle(.segmented)
 
                     if !useManualTarget {
-                        // Display scraped weight from website
+                        // Auto mode - show detected weight
                         HStack {
-                            Text("From Website")
+                            Text("Target")
                             Spacer()
                             if let weight = scrapedTargetWeight {
                                 Text(WeightFormatter.format(weight, useLbs: useLbs))
@@ -153,9 +157,10 @@ struct SettingsView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
-                    }
-
-                    if useManualTarget {
+                        Text("Target weight is automatically read from the timer page")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
                         // Input mode selector - its own row
                         Picker("Input Mode", selection: $useKeyboardInput) {
                             Label("Wheels", systemImage: "dial.medium").tag(false)
