@@ -129,9 +129,14 @@ struct SetReviewSheet: View {
             VStack(spacing: 6) {
                 statRow("Duration", value: String(format: "%.1fs", rep.duration))
                 statRow("Median", value: WeightFormatter.format(rep.median, useLbs: useLbs))
+                statRow("Average", value: WeightFormatter.format(rep.mean, useLbs: useLbs))
+                statRow("Standard Deviation", value: String(format: "%.2f", useLbs ? rep.stdDev * AppConstants.kgToLbs : rep.stdDev))
                 if let absDev = rep.absoluteDeviation, let pctDev = rep.deviationPercentage {
                     statRow("Difference of Median from Target", value: formatDeviation(absolute: absDev, percentage: pctDev))
                 }
+
+                // Percentile grid
+                percentilesGrid(rep: rep)
             }
             .padding(.horizontal)
         }
@@ -148,6 +153,42 @@ struct SetReviewSheet: View {
                 .fontWeight(bold ? .medium : .regular)
         }
         .font(.subheadline)
+    }
+
+    /// Compact horizontal grid showing percentile distribution
+    private func percentilesGrid(rep: RepResult) -> some View {
+        let percentiles: [(String, Double)] = [
+            ("P1", rep.p1),
+            ("P5", rep.p5),
+            ("P10", rep.p10),
+            ("P25", rep.q1),
+            ("P75", rep.q3),
+            ("P90", rep.p90),
+            ("P95", rep.p95),
+            ("P99", rep.p99)
+        ]
+
+        return VStack(spacing: 2) {
+            Text("Percentiles")
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 0) {
+                ForEach(percentiles, id: \.0) { label, _ in
+                    Text(label)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .foregroundColor(.secondary)
+
+            HStack(spacing: 0) {
+                ForEach(percentiles, id: \.0) { _, value in
+                    Text(WeightFormatter.format(value, useLbs: useLbs, includeUnit: false))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .font(.caption)
     }
 
     /// Format deviation as "+0.04 kg (+1.0%)"

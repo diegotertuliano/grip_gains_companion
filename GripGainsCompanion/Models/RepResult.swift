@@ -112,6 +112,21 @@ final class RepResult: Identifiable {
         StatisticsUtilities.median(filteredSamples)
     }
 
+    /// 1st percentile
+    var p1: Double {
+        StatisticsUtilities.percentile(0.01, of: filteredSamples)
+    }
+
+    /// 5th percentile
+    var p5: Double {
+        StatisticsUtilities.percentile(0.05, of: filteredSamples)
+    }
+
+    /// 10th percentile
+    var p10: Double {
+        StatisticsUtilities.percentile(0.10, of: filteredSamples)
+    }
+
     /// 25th percentile (first quartile)
     var q1: Double {
         StatisticsUtilities.percentile(0.25, of: filteredSamples)
@@ -120,6 +135,21 @@ final class RepResult: Identifiable {
     /// 75th percentile (third quartile)
     var q3: Double {
         StatisticsUtilities.percentile(0.75, of: filteredSamples)
+    }
+
+    /// 90th percentile
+    var p90: Double {
+        StatisticsUtilities.percentile(0.90, of: filteredSamples)
+    }
+
+    /// 95th percentile
+    var p95: Double {
+        StatisticsUtilities.percentile(0.95, of: filteredSamples)
+    }
+
+    /// 99th percentile
+    var p99: Double {
+        StatisticsUtilities.percentile(0.99, of: filteredSamples)
     }
 
     /// Interquartile range
