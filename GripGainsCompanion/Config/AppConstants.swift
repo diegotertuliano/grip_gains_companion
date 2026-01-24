@@ -131,12 +131,13 @@ enum PitchSixProtocol {
 
 // MARK: - WHC06 BLE Protocol
 enum WHC06Protocol {
-    /// Weight data is at bytes 10-11 (big-endian 16-bit integer)
-    static let weightByteOffset: Int = 10
+    /// Weight data is at payload bytes 10-11, but iOS CoreBluetooth includes the 2-byte
+    /// manufacturer ID prefix, so the actual offset in the raw data is 12-13.
+    static let weightByteOffset: Int = 12
     /// Divide raw weight by 100 to get kg
     static let weightDivisor: Double = 100.0
-    /// Minimum advertisement data size to contain weight
-    static let minDataSize: Int = 12
+    /// Minimum advertisement data size to contain weight (need bytes 12-13)
+    static let minDataSize: Int = 14
 }
 
 // MARK: - BLE Errors

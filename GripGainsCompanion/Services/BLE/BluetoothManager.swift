@@ -323,8 +323,10 @@ extension BluetoothManager: CBCentralManagerDelegate {
             return
         }
 
-        // For WHC06, process advertisement data if already "connected"
-        if deviceType == .weihengWHC06 && connectionState == .connected && connectedDeviceType == .weihengWHC06 {
+        // For WHC06, process advertisement data if already "connected" and from the selected device
+        if deviceType == .weihengWHC06 && connectionState == .connected && connectedDeviceType == .weihengWHC06,
+           let selectedDevice = pendingDevice,
+           peripheral.identifier == selectedDevice.peripheralIdentifier {
             whc06Service?.processAdvertisement(advertisementData, rssi: RSSI.intValue)
             return
         }

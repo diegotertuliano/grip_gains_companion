@@ -10,9 +10,6 @@ class WHC06Service {
     private var baseTimestamp: Date?
     private var sampleCounter: UInt32 = 0
 
-    /// Last received weight for deduplication
-    private var lastWeight: Double?
-
     /// Timeout timer for detecting device disconnect (no advertisements)
     private var disconnectTimer: Timer?
 
@@ -37,7 +34,6 @@ class WHC06Service {
         Log.ble.info("Starting WHC06 service...")
         baseTimestamp = Date()
         sampleCounter = 0
-        lastWeight = nil
         resetDisconnectTimer()
     }
 
@@ -61,36 +57,29 @@ class WHC06Service {
         // Reset disconnect timer since we received data
         resetDisconnectTimer()
 
-        // Only send if weight changed (simple deduplication)
-        if lastWeight != weight {
-            lastWeight = weight
-
-            // Generate synthetic timestamp
-            let timestamp = generateTimestamp()
-
-            onForceSample?(weight, timestamp)
-        }
+        // Send every sample - iOS advertisement rate is already slow for WHC06,
+        // and we need continuous samples for calibration to complete
+        let timestamp = generateTimestamp()
+        onForceSample?(weight, timestamp)
     }
 
     // MARK: - Data Parsing
 
     /// Parse manufacturer data from WHC06 advertisement
-    /// Format: bytes 10-11 contain weight as big-endian 16-bit integer, divided by 100 for kg
+    /// Format: bytes 12-13 contain weight as big-endian 16-bit integer, divided by 100 for kg
+    /// (bytes 0-1 are the manufacturer ID prefix in iOS CoreBluetooth)
     private func parseManufacturerData(_ data: Data) -> Double? {
-        // Verify minimum data size
+        // Verify minimum data size (need bytes 12-13 for weight)
         guard data.count >= WHC06Protocol.minDataSize else {
             return nil
         }
 
-        // Verify manufacturer ID (first 2 bytes)
-        let manufacturerId = UInt16(data[0]) | (UInt16(data[1]) << 8)
-        guard manufacturerId == AppConstants.whc06ManufacturerId else {
-            return nil
-        }
-
-        // Extract weight from bytes 10-11 (big-endian)
+        // Extract weight from bytes 12-13 (big-endian, signed Int16 for negative values after tare)
         let weightOffset = WHC06Protocol.weightByteOffset
-        let rawWeight = Int(data[weightOffset]) << 8 | Int(data[weightOffset + 1])
+        let weightBytes = data.subdata(in: weightOffset..<weightOffset + 2)
+        let rawWeight = weightBytes.withUnsafeBytes { buffer in
+            Int16(bigEndian: buffer.load(as: Int16.self))
+        }
 
         // Convert to kg (divide by 100)
         let weightKg = Double(rawWeight) / WHC06Protocol.weightDivisor
