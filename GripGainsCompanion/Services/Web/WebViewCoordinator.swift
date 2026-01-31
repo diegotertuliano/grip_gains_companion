@@ -159,6 +159,23 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
         }
     }
 
+    /// Click the "End Session" button via JavaScript injection
+    func clickEndSessionButton() {
+        Task { @MainActor in
+            await clickEndSessionButtonAsync()
+        }
+    }
+
+    /// Click the "End Session" button (async version)
+    @MainActor
+    func clickEndSessionButtonAsync() async {
+        do {
+            _ = try await webView?.evaluateJavaScript(JavaScriptBridge.clickEndSessionButton)
+        } catch {
+            Log.app.error("Error clicking end session button: \(error.localizedDescription)")
+        }
+    }
+
     /// Request current button state from the page (for manual refresh if needed)
     func refreshButtonState() {
         Task { @MainActor in

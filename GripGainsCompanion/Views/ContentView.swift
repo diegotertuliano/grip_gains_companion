@@ -187,6 +187,8 @@ struct ContentView: View {
     @AppStorage("enableLiveActivity") private var enableLiveActivity = AppConstants.defaultEnableLiveActivity
     @AppStorage("autoSelectWeight") private var autoSelectWeight = AppConstants.defaultAutoSelectWeight
     @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
+    @AppStorage("enableEndSessionOnEarlyFail") private var enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
+    @AppStorage("earlyFailThresholdPercent") private var earlyFailThresholdPercent: Double = AppConstants.defaultEarlyFailThresholdPercent
     @State private var dragOffset: CGSize = .zero
     @State private var displayedMean: Double?
     @State private var displayedStdDev: Double?
@@ -655,6 +657,18 @@ struct ContentView: View {
         progressorHandler.targetWeight = effectiveTargetWeight
     }
 
+    /// Determine if we should end the session instead of failing
+    private func shouldEndSessionOnEarlyFail() -> Bool {
+        guard enableEndSessionOnEarlyFail,
+              let targetDuration = scrapedTargetDuration,
+              let remainingTime = scrapedRemainingTime,
+              targetDuration > 0 else { return false }
+
+        let elapsedTime = targetDuration - remainingTime
+        let thresholdSeconds = Double(targetDuration) * earlyFailThresholdPercent
+        return Double(elapsedTime) < thresholdSeconds
+    }
+
     // MARK: - Weight Picker Functions
 
     /// Step size from scraped weights (difference between first two options)
@@ -749,12 +763,17 @@ struct ContentView: View {
             progressorHandler.processSample(force, timestamp: timestamp)
         }
 
-        // Handler grip failed -> Click fail button and end Live Activity
+        // Handler grip failed -> Click fail or end session button
         let activityMgr = activityManager
         progressorHandler.gripFailed
             .receive(on: DispatchQueue.main)
             .sink { [webCoordinator, activityMgr] in
-                webCoordinator.clickFailButton()
+                if self.shouldEndSessionOnEarlyFail() {
+                    webCoordinator.clickEndSessionButton()
+                    Log.app.info("Early fail detected - ending session")
+                } else {
+                    webCoordinator.clickFailButton()
+                }
                 activityMgr.endActivity()
                 if UserDefaults.standard.object(forKey: "enableHaptics") as? Bool ?? true {
                     HapticManager.warning()

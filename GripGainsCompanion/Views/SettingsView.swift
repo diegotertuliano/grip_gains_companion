@@ -107,6 +107,8 @@ struct SettingsView: View {
     @AppStorage("enableLiveActivity") private var enableLiveActivity = AppConstants.defaultEnableLiveActivity
     @AppStorage("autoSelectWeight") private var autoSelectWeight = AppConstants.defaultAutoSelectWeight
     @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
+    @AppStorage("enableEndSessionOnEarlyFail") private var enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
+    @AppStorage("earlyFailThresholdPercent") private var earlyFailThresholdPercent: Double = AppConstants.defaultEarlyFailThresholdPercent
     @AppStorage("engageThreshold") private var engageThreshold: Double = AppConstants.defaultEngageThreshold
     @AppStorage("failThreshold") private var failThreshold: Double = AppConstants.defaultFailThreshold
     @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
@@ -550,6 +552,23 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
 
+                    Toggle("Balrog Avoidance", isOn: $enableEndSessionOnEarlyFail)
+                    if enableEndSessionOnEarlyFail {
+                        HStack {
+                            Text("Threshold")
+                            Spacer()
+                            Text("\(Int(round(earlyFailThresholdPercent * 100)))%")
+                                .foregroundColor(.secondary)
+                            Stepper("", value: $earlyFailThresholdPercent,
+                                    in: AppConstants.minEarlyFailThresholdPercent...AppConstants.maxEarlyFailThresholdPercent,
+                                    step: 0.05)
+                                .labelsHidden()
+                        }
+                        Text("Abort session if grip fails before this % of target duration.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                 }
 
                 // Units section
@@ -648,6 +667,8 @@ struct SettingsView: View {
         autoSelectWeight = AppConstants.defaultAutoSelectWeight
         autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
         useKeyboardInput = AppConstants.defaultUseKeyboardInput
+        enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
+        earlyFailThresholdPercent = AppConstants.defaultEarlyFailThresholdPercent
 
         // Fixed thresholds
         engageThreshold = AppConstants.defaultEngageThreshold

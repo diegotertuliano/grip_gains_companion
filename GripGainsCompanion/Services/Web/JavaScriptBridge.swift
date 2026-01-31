@@ -113,6 +113,16 @@ enum JavaScriptBridge {
         })();
     """
 
+    /// Click the "End Session" button to abort the session
+    static let clickEndSessionButton = """
+        (function() {
+            const button = document.querySelector('button.btn-danger.btn-lg.session-actions-end');
+            if (button && !button.disabled) {
+                button.click();
+            }
+        })();
+    """
+
     /// Check if fail button is enabled
     static let checkFailButtonState = """
         (function() {

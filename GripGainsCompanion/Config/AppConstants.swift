@@ -64,6 +64,12 @@ struct AppConstants {
     static let defaultAutoSelectFromManual: Bool = false
     static let defaultUseKeyboardInput: Bool = false
 
+    // MARK: - Early Fail Behavior
+    static let defaultEnableEndSessionOnEarlyFail: Bool = false
+    static let defaultEarlyFailThresholdPercent: Double = 0.50  // 50%
+    static let minEarlyFailThresholdPercent: Double = 0.10      // 10%
+    static let maxEarlyFailThresholdPercent: Double = 0.90      // 90%
+
     // MARK: - Web
     static let gripGainsURL = URL(string: "https://gripgains.ca/timer")!
 
