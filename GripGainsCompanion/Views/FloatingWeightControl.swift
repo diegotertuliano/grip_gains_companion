@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Floating control for manually selecting target weight
-/// Shows GG target weight (reference), adjustable weight with +/-, and SET button
+/// Shows GG target weight (reference), adjustable weight with +/-, SET and Start buttons
 struct FloatingWeightControl: View {
     let ggTargetWeight: Double?  // Current target from gripgains (reference)
     let suggestedWeight: Double?  // Suggested weight from median (adjustable)
@@ -12,6 +12,7 @@ struct FloatingWeightControl: View {
     let onDecrement: () -> Void
     let onSet: () -> Void
     let onReset: () -> Void  // Reset suggested weight to GG target
+    let onStart: () -> Void  // Start the session
 
     /// Can set if we have a suggested weight that differs from current GG target
     private var canSet: Bool {
@@ -66,18 +67,31 @@ struct FloatingWeightControl: View {
                 .disabled(!canIncrement)
             }
 
-            // SET button
-            Button(action: onSet) {
-                Text("SET")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 6)
-                    .background(canSet ? Color.blue : Color.gray)
-                    .cornerRadius(8)
+            // SET and Start buttons
+            HStack(spacing: 12) {
+                Button(action: onSet) {
+                    Text("SET")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 6)
+                        .background(canSet ? Color.blue : Color.gray)
+                        .cornerRadius(8)
+                }
+                .disabled(!canSet)
+
+                Button(action: onStart) {
+                    Text("Start")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .background(Color(red: 99/255, green: 102/255, blue: 241/255))  // #6366f1 indigo
+                        .cornerRadius(8)
+                }
             }
-            .disabled(!canSet)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -95,7 +109,8 @@ struct FloatingWeightControl: View {
         onIncrement: {},
         onDecrement: {},
         onSet: {},
-        onReset: {}
+        onReset: {},
+        onStart: {}
     )
     .padding()
     .background(Color.black)
@@ -111,7 +126,8 @@ struct FloatingWeightControl: View {
         onIncrement: {},
         onDecrement: {},
         onSet: {},
-        onReset: {}
+        onReset: {},
+        onStart: {}
     )
     .padding()
     .background(Color.black)
@@ -127,7 +143,8 @@ struct FloatingWeightControl: View {
         onIncrement: {},
         onDecrement: {},
         onSet: {},
-        onReset: {}
+        onReset: {},
+        onStart: {}
     )
     .padding()
     .background(Color.black)

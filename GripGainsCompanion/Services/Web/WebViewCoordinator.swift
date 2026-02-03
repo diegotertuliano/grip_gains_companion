@@ -177,6 +177,13 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
         }
     }
 
+    /// Click the "Start" button via JavaScript injection
+    func clickStartButton() {
+        Task { @MainActor in
+            try? await webView?.evaluateJavaScript(JavaScriptBridge.clickStartButton)
+        }
+    }
+
     /// Request current button state from the page (for manual refresh if needed)
     func refreshButtonState() {
         Task { @MainActor in

@@ -123,6 +123,16 @@ enum JavaScriptBridge {
         })();
     """
 
+    /// Click the "Start" button to begin the session
+    static let clickStartButton = """
+        (function() {
+            const button = document.querySelector('button.btn-start-prominent');
+            if (button && !button.disabled) {
+                button.click();
+            }
+        })();
+    """
+
     /// Check if fail button is enabled
     static let checkFailButtonState = """
         (function() {
