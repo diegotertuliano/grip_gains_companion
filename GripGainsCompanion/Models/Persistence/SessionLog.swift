@@ -11,6 +11,7 @@ final class SessionLog {
     var timestamp: Date = Date()
     var gripperType: String = ""
     var side: String = ""
+    var isDeleted: Bool = false
 
     // MARK: - Relationships (must be optional for CloudKit)
     @Relationship(deleteRule: .cascade, inverse: \RepLog.session)

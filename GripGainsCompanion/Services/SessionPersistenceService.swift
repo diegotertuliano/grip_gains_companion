@@ -17,6 +17,7 @@ final class SessionPersistenceService: ObservableObject {
 
     init(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
+        purgeDeletedSessions()
     }
 
     // MARK: - Session Management
@@ -75,37 +76,37 @@ final class SessionPersistenceService: ObservableObject {
 
     // MARK: - Query Methods
 
-    /// Fetch all sessions ordered by timestamp (most recent first)
+    /// Fetch all sessions ordered by timestamp (most recent first), excluding soft-deleted
     func fetchAllSessions() throws -> [SessionLog] {
-        let descriptor = FetchDescriptor<SessionLog>(
-            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-        )
+        let predicate = #Predicate<SessionLog> { !$0.isDeleted }
+        var descriptor = FetchDescriptor<SessionLog>(predicate: predicate)
+        descriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
         return try modelContext.fetch(descriptor)
     }
 
-    /// Fetch sessions filtered by gripper type
+    /// Fetch sessions filtered by gripper type, excluding soft-deleted
     func fetchSessions(gripperType: String) throws -> [SessionLog] {
         let predicate = #Predicate<SessionLog> { session in
-            session.gripperType == gripperType
+            session.gripperType == gripperType && !session.isDeleted
         }
         var descriptor = FetchDescriptor<SessionLog>(predicate: predicate)
         descriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
         return try modelContext.fetch(descriptor)
     }
 
-    /// Delete a session and all its reps
+    /// Soft-delete a session (marks as deleted, will be purged on next launch)
     func deleteSession(_ session: SessionLog) {
-        modelContext.delete(session)
+        session.isDeleted = true
         try? modelContext.save()
 
         // Regenerate CSV with remaining sessions
         regenerateICloudCSV()
     }
 
-    /// Delete multiple sessions
+    /// Soft-delete multiple sessions
     func deleteSessions(_ sessions: [SessionLog]) {
         for session in sessions {
-            modelContext.delete(session)
+            session.isDeleted = true
         }
         try? modelContext.save()
 
@@ -127,6 +128,32 @@ final class SessionPersistenceService: ObservableObject {
         currentSession = nil
         currentGripper = nil
         currentSide = nil
+    }
+
+    // MARK: - Cleanup
+
+    /// Permanently delete soft-deleted and empty sessions (called on app launch)
+    private func purgeDeletedSessions() {
+        // 1. Purge soft-deleted sessions
+        let deletedPredicate = #Predicate<SessionLog> { $0.isDeleted }
+        let deletedDescriptor = FetchDescriptor<SessionLog>(predicate: deletedPredicate)
+        if let toDelete = try? modelContext.fetch(deletedDescriptor) {
+            for session in toDelete {
+                modelContext.delete(session)
+            }
+        }
+
+        // 2. Purge empty (0-rep) sessions - exclude current session
+        let allDescriptor = FetchDescriptor<SessionLog>()
+        if let allSessions = try? modelContext.fetch(allDescriptor) {
+            for session in allSessions where session != currentSession {
+                if (session.reps ?? []).isEmpty {
+                    modelContext.delete(session)
+                }
+            }
+        }
+
+        try? modelContext.save()
     }
 
     // MARK: - iCloud Documents
