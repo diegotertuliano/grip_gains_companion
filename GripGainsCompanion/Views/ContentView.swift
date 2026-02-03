@@ -142,6 +142,7 @@ struct ToleranceBoundsSyncModifier: ViewModifier {
 /// Main view that orchestrates all components
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var persistenceService: SessionPersistenceService
     @StateObject private var bluetoothManager = BluetoothManager()
     @StateObject private var progressorHandler = ProgressorHandler()
     @StateObject private var activityManager = ActivityManager()
@@ -742,10 +743,13 @@ struct ContentView: View {
         }
 
         // WebView session info (gripper type, side)
-        webCoordinator.onSessionInfoChanged = { [repTracker] gripper, side in
+        webCoordinator.onSessionInfoChanged = { [repTracker, persistenceService] gripper, side in
             scrapedGripper = gripper
             scrapedSide = side
             repTracker.updateSessionContext(gripper: gripper, side: side)
+            Task { @MainActor in
+                persistenceService.updateSessionContext(gripper: gripper, side: side)
+            }
         }
 
         // WebView advanced-settings-header visibility
@@ -801,6 +805,16 @@ struct ContentView: View {
                     samples: samples,
                     targetWeight: progressorHandler.targetWeight
                 )
+            }
+            .store(in: &cancellables)
+
+        // Rep completed -> Save to database
+        repTracker.repCompleted
+            .receive(on: DispatchQueue.main)
+            .sink { [persistenceService] rep in
+                Task { @MainActor in
+                    persistenceService.saveRep(from: rep)
+                }
             }
             .store(in: &cancellables)
 

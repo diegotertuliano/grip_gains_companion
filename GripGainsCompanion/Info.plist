@@ -2,20 +2,23 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>NSBluetoothAlwaysUsageDescription</key>
-    <string>Grip Gains Companion connects to your Tindeq Progressor to measure grip force during training sessions.</string>
-    <key>NSBluetoothPeripheralUsageDescription</key>
-    <string>Grip Gains Companion needs Bluetooth to communicate with your Tindeq Progressor device.</string>
-    <key>CFBundleDisplayName</key>
-    <string>Grip Gains Unofficial Companion</string>
-    <key>UIBackgroundModes</key>
-    <array>
-        <string>bluetooth-central</string>
-        <string>audio</string>
-    </array>
-    <key>ITSAppUsesNonExemptEncryption</key>
-    <false/>
-    <key>NSSupportsLiveActivities</key>
-    <true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+		<string>audio</string>
+		<string>remote-notification</string>
+	</array>
+	<key>NSUbiquitousContainers</key>
+	<dict>
+		<key>iCloud.com.gripgains.companion</key>
+		<dict>
+			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
+			<true/>
+			<key>NSUbiquitousContainerName</key>
+			<string>Grip Gains Companion</string>
+			<key>NSUbiquitousContainerSupportedFolderLevels</key>
+			<string>Any</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

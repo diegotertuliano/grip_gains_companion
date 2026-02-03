@@ -70,6 +70,9 @@ struct AppConstants {
     static let minEarlyFailThresholdPercent: Double = 0.10      // 10%
     static let maxEarlyFailThresholdPercent: Double = 0.90      // 90%
 
+    // MARK: - iCloud Sync
+    static let defaultEnableICloudSync: Bool = false
+
     // MARK: - Web
     static let gripGainsURL = URL(string: "https://gripgains.ca/timer")!
 

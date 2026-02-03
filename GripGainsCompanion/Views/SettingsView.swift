@@ -109,6 +109,7 @@ struct SettingsView: View {
     @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
     @AppStorage("enableEndSessionOnEarlyFail") private var enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
     @AppStorage("earlyFailThresholdPercent") private var earlyFailThresholdPercent: Double = AppConstants.defaultEarlyFailThresholdPercent
+    @AppStorage("enableICloudSync") private var enableICloudSync = AppConstants.defaultEnableICloudSync
     @AppStorage("engageThreshold") private var engageThreshold: Double = AppConstants.defaultEngageThreshold
     @AppStorage("failThreshold") private var failThreshold: Double = AppConstants.defaultFailThreshold
     @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
@@ -151,6 +152,15 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                // History section
+                Section("History") {
+                    NavigationLink("View Session History", destination: SessionHistoryView())
+                    Toggle("iCloud Sync", isOn: $enableICloudSync)
+                    Text("Syncs session data across devices and saves CSV files to iCloud Drive. Restart app after changing.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
                 // Target Weight section (only shown when device is connected)
                 if isDeviceConnected {
                     Section("Target Weight") {
@@ -669,6 +679,9 @@ struct SettingsView: View {
         useKeyboardInput = AppConstants.defaultUseKeyboardInput
         enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
         earlyFailThresholdPercent = AppConstants.defaultEarlyFailThresholdPercent
+
+        // Data
+        enableICloudSync = AppConstants.defaultEnableICloudSync
 
         // Fixed thresholds
         engageThreshold = AppConstants.defaultEngageThreshold
