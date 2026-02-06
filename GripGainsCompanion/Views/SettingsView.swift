@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - Bounds Picker Row
 
@@ -64,6 +65,8 @@ enum ForceBarTheme: String, CaseIterable {
     }
 }
 
+// MARK: - Settings View
+
 struct SettingsView: View {
     let deviceName: String?
     let isDeviceConnected: Bool
@@ -75,9 +78,6 @@ struct SettingsView: View {
 
     /// Target weight scraped from website (read-only display)
     let scrapedTargetWeight: Double?
-
-    /// Progressor handler for sample filter test (optional, only needed when connected)
-    var progressorHandler: ProgressorHandler?
 
     /// Device short name for dynamic text (e.g., "Tindeq", "PitchSix")
     var deviceShortName: String = "device"
@@ -136,6 +136,7 @@ struct SettingsView: View {
     @State private var manualTargetText: String = "20.00"
     @State private var showThresholdOptions = false
     @State private var showResetConfirmation = false
+    @State private var showHistorySheet = false
     @FocusState private var isTextFieldFocused: Bool
 
     // Decimal options (0.05 increments)
@@ -154,7 +155,9 @@ struct SettingsView: View {
             List {
                 // History section
                 Section("History") {
-                    NavigationLink("View Session History", destination: SessionHistoryView())
+                    Button("View Session History") {
+                        showHistorySheet = true
+                    }
                     Toggle("iCloud Sync", isOn: $enableICloudSync)
                     Text("Syncs session data across devices and saves CSV files to iCloud Drive. Restart app after changing.")
                         .font(.caption)
@@ -614,27 +617,30 @@ struct SettingsView: View {
                 } footer: {
                     Text("Restores all settings to their recommended values.")
                 }
-            }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
+        }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") {
+                    dismiss()
                 }
             }
-            .onAppear {
-                initializeWheelPickers()
-                let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
-                manualTargetText = String(format: "%.2f", displayValue)
-            }
-            .onChange(of: useLbs) { _, _ in
-                // Re-initialize inputs when unit changes to show correct value in new unit
-                initializeWheelPickers()
-                let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
-                manualTargetText = String(format: "%.2f", displayValue)
-            }
+        }
+        .onAppear {
+            initializeWheelPickers()
+            let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
+            manualTargetText = String(format: "%.2f", displayValue)
+        }
+        .onChange(of: useLbs) { _, _ in
+            // Re-initialize inputs when unit changes to show correct value in new unit
+            initializeWheelPickers()
+            let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
+            manualTargetText = String(format: "%.2f", displayValue)
+        }
+        } // NavigationStack
+        .sheet(isPresented: $showHistorySheet) {
+            SessionHistorySheet()
         }
     }
 

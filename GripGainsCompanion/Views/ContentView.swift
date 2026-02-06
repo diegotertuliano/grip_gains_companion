@@ -362,7 +362,6 @@ struct ContentView: View {
                 webCoordinator.refreshButtonState()
             },
             scrapedTargetWeight: scrapedTargetWeight,
-            progressorHandler: progressorHandler,
             deviceShortName: bluetoothManager.selectedDeviceType.shortName
         )
     }
@@ -390,7 +389,9 @@ struct ContentView: View {
         mainViewWithHandlers
             .overlay { settingsButtonOverlay }
             .overlay { floatingWeightControlOverlay }
-            .sheet(isPresented: $showSettings) { settingsSheet }
+            .sheet(isPresented: $showSettings) {
+                settingsSheet
+            }
             .sheet(isPresented: $showSetReview) { setReviewSheet }
     }
 
