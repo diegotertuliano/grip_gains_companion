@@ -11,6 +11,9 @@ final class SessionPersistenceService: ObservableObject {
     /// Current active session (nil until first rep with valid gripper/side)
     @Published private(set) var currentSession: SessionLog?
 
+    /// Whether the current session has been persisted to the database
+    private var isSessionPersisted = false
+
     /// Tracking session context
     private var currentGripper: String?
     private var currentSide: String?
@@ -32,26 +35,18 @@ final class SessionPersistenceService: ObservableObject {
 
         // Check if session context changed
         if gripper != currentGripper || side != currentSide {
-            // Handle previous session
-            if let session = currentSession {
-                if (session.reps ?? []).isEmpty {
-                    // Delete empty session - don't persist 0-rep sessions
-                    modelContext.delete(session)
-                } else {
-                    // Save to iCloud if has reps
-                    saveCurrentSessionToICloud()
-                }
+            // Handle previous session - save to iCloud if it has reps
+            if currentSession != nil && isSessionPersisted {
+                saveCurrentSessionToICloud()
             }
 
-            // Create new session
+            // Create new session (not persisted until first rep)
             let session = SessionLog(gripperType: gripper, side: side)
-            modelContext.insert(session)
             currentSession = session
+            isSessionPersisted = false
 
             currentGripper = gripper
             currentSide = side
-
-            try? modelContext.save()
         }
     }
 
@@ -62,6 +57,12 @@ final class SessionPersistenceService: ObservableObject {
         guard let session = currentSession else {
             // No active session - cannot save rep
             return
+        }
+
+        // Persist session on first rep
+        if !isSessionPersisted {
+            modelContext.insert(session)
+            isSessionPersisted = true
         }
 
         let repLog = RepLog(from: repResult, session: session)
@@ -116,16 +117,12 @@ final class SessionPersistenceService: ObservableObject {
 
     /// Reset current session (called when user explicitly ends session)
     func endCurrentSession() {
-        // Delete empty session, or save to iCloud if has reps
-        if let session = currentSession {
-            if (session.reps ?? []).isEmpty {
-                modelContext.delete(session)
-                try? modelContext.save()
-            } else {
-                saveCurrentSessionToICloud()
-            }
+        // Save to iCloud if session was persisted (has reps)
+        if isSessionPersisted {
+            saveCurrentSessionToICloud()
         }
         currentSession = nil
+        isSessionPersisted = false
         currentGripper = nil
         currentSide = nil
     }
