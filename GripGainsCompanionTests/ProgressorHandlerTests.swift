@@ -1707,4 +1707,54 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.weightCalibrationThreshold = 2.0
         XCTAssertEqual(handler.weightCalibrationThreshold, 2.0)
     }
+
+    // MARK: - onSampleProcessed Callback Tests
+
+    func testOnSampleProcessedCallbackFiresWithCorrectForce() {
+        var received: [(timestamp: Date, force: Double)] = []
+        handler.onSampleProcessed = { timestamp, force in
+            received.append((timestamp: timestamp, force: force))
+        }
+
+        processTestSample(15.0)
+        waitForMainQueue()
+
+        XCTAssertEqual(received.count, 1, "Callback should fire once per sample")
+        XCTAssertEqual(received[0].force, 15.0, accuracy: 0.01,
+                       "Callback should receive the raw weight")
+    }
+
+    func testOnSampleProcessedTimestampsAreProperlySpaced() {
+        var timestamps: [Date] = []
+        handler.onSampleProcessed = { timestamp, _ in
+            timestamps.append(timestamp)
+        }
+
+        // Send 3 samples at 80Hz (12500µs apart)
+        processTestSample(1.0)
+        processTestSample(2.0)
+        processTestSample(3.0)
+        waitForMainQueue()
+
+        XCTAssertEqual(timestamps.count, 3)
+        let gap1 = timestamps[1].timeIntervalSince(timestamps[0])
+        let gap2 = timestamps[2].timeIntervalSince(timestamps[1])
+        // Each gap should be 12500µs = 0.0125s (derived from device timestamps, not wall clock)
+        XCTAssertEqual(gap1, 0.0125, accuracy: 0.001,
+                       "Display timestamps should be spaced by device timestamp offsets")
+        XCTAssertEqual(gap2, 0.0125, accuracy: 0.001,
+                       "Display timestamps should be spaced by device timestamp offsets")
+    }
+
+    func testOnSampleProcessedNotCalledWhenNil() {
+        // Leave onSampleProcessed as nil (default)
+        setupIdleStateWithZeroBaseline()
+
+        processTestSample(10.0)
+        waitForMainQueue()
+
+        // Sample should still be processed normally
+        XCTAssertFalse(handler.forceHistory.isEmpty,
+                       "Processing should work even without a callback")
+    }
 }
