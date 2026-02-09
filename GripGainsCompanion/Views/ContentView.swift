@@ -767,14 +767,14 @@ struct ContentView: View {
             repTracker.completeSet()
         }
 
-        // BLE force samples -> Handler + Chart data source
-        bluetoothManager.onForceSample = { [chartDataSource] force, timestamp in
+        // BLE force samples -> Handler processing
+        bluetoothManager.onForceSample = { force, timestamp in
             progressorHandler.processSample(force, timestamp: timestamp)
-            DispatchQueue.main.async {
-                if let ts = progressorHandler.lastDisplayTimestamp {
-                    chartDataSource.addSample(timestamp: ts, force: force)
-                }
-            }
+        }
+
+        // Handler processed sample -> Chart data source
+        progressorHandler.onSampleProcessed = { [chartDataSource] timestamp, force in
+            chartDataSource.addSample(timestamp: timestamp, force: force)
         }
 
         // Handler grip failed -> Click fail or end session button

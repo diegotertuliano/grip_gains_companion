@@ -51,10 +51,10 @@ class ProgressorHandler: ObservableObject {
     @Published private(set) var sessionStdDev: Double?
 
     // Force history for graph (timestamp, force value)
-    @Published private(set) var forceHistory: [(timestamp: Date, force: Double)] = []
+    private(set) var forceHistory: [(timestamp: Date, force: Double)] = []
 
-    // Last computed display timestamp (for external consumers like ForceChartDataSource)
-    private(set) var lastDisplayTimestamp: Date?
+    /// Called after each sample is processed, with the display timestamp and force value
+    var onSampleProcessed: ((Date, Double) -> Void)?
 
     // Last device timestamp received (microseconds) - used for elapsed time calculation
     private var lastTimestamp: UInt32 = 0
@@ -90,9 +90,6 @@ class ProgressorHandler: ObservableObject {
 
     /// Publishes grip session data when disengaged (duration, samples)
     let gripDisengaged = PassthroughSubject<(TimeInterval, [Double]), Never>()
-
-    /// Publishes force updates (force, engaged, weightMedian, weightCalibrationEngaged)
-    let forceUpdated = PassthroughSubject<(Double, Bool, Double?, Bool), Never>()
 
     /// Publishes when off-target state changes during gripping (isOffTarget, direction)
     let offTargetChanged = PassthroughSubject<(Bool, Double?), Never>()
@@ -214,8 +211,8 @@ class ProgressorHandler: ObservableObject {
                 displayTimestamp = firstDisplayTimestamp!
             }
 
-            lastDisplayTimestamp = displayTimestamp
             forceHistory.append((timestamp: displayTimestamp, force: rawWeight))
+            onSampleProcessed?(displayTimestamp, rawWeight)
             processStateTransition(rawWeight: rawWeight, timestamp: timestamp)
         }
     }
@@ -242,7 +239,6 @@ class ProgressorHandler: ObservableObject {
         sessionMean = nil
         sessionStdDev = nil
         forceHistory = []
-        lastDisplayTimestamp = nil
         firstDeviceTimestamp = nil
         firstDisplayTimestamp = nil
     }
@@ -308,7 +304,6 @@ class ProgressorHandler: ObservableObject {
                 state = .gripping(baseline: baseline, startTimestamp: startTimestamp, samples: samples)
                 checkOffTarget(rawWeight: rawWeight)
             }
-            publishForceUpdate()
 
         case .weightCalibration(let baseline, var samples, let isHolding):
             let taredWeight = rawWeight - baseline
@@ -334,7 +329,6 @@ class ProgressorHandler: ObservableObject {
             state = .weightCalibration(baseline: baseline, samples: [sample], isHolding: true)
             weightMedian = rawWeight
         }
-        publishForceUpdate()
     }
 
     private func handleWeightCalibrationState(
@@ -372,17 +366,6 @@ class ProgressorHandler: ObservableObject {
             // Completely released - back to idle but keep median
             state = .idle(baseline: baseline)
         }
-        publishForceUpdate()
-    }
-
-    private func publishForceUpdate() {
-        let isWeightCalibrationEngaged: Bool
-        if case .weightCalibration(_, _, let isHolding) = state {
-            isWeightCalibrationEngaged = isHolding
-        } else {
-            isWeightCalibrationEngaged = false
-        }
-        forceUpdated.send((currentForce, engaged, weightMedian, isWeightCalibrationEngaged))
     }
 
     // MARK: - Target Weight Checking
