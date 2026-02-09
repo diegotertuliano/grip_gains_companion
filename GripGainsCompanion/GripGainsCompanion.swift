@@ -8,6 +8,13 @@ struct GripGainsCompanion: App {
     @StateObject private var persistenceService: SessionPersistenceService
 
     init() {
+        // Auto-detect unit preference on first launch
+        if !UserDefaults.standard.bool(forKey: "hasInitializedUnits") {
+            let usesImperial = Locale.current.measurementSystem != .metric
+            UserDefaults.standard.set(usesImperial, forKey: "useLbs")
+            UserDefaults.standard.set(true, forKey: "hasInitializedUnits")
+        }
+
         // Keep screen always on while app is active
         UIApplication.shared.isIdleTimerDisabled = true
 
