@@ -15,49 +15,89 @@ struct ForceGraphView: View {
         colorScheme == .dark
     }
 
-    /// Filter history to the selected time window
-    private var visibleHistory: [(timestamp: Date, force: Double)] {
-        guard windowSeconds > 0 else {
-            return forceHistory  // Entire session
-        }
-        let cutoff = Date().addingTimeInterval(-Double(windowSeconds))
-        return forceHistory.filter { $0.timestamp >= cutoff }
-    }
-
     /// Convert force to display units
     private func displayForce(_ force: Double) -> Double {
         Double(useLbs ? force * AppConstants.kgToLbs : force)
     }
 
     var body: some View {
-        Chart {
-            // Tolerance band (if target and tolerance are set)
+        if windowSeconds > 0 {
+            TimelineView(.periodic(from: .now, by: 1.0 / 60)) { timeline in
+                chartContent(now: timeline.date)
+            }
+        } else {
+            chartContent(now: Date())
+        }
+    }
+
+    private func chartContent(now: Date) -> some View {
+        let windowStart: Date
+        let xMax: Double
+
+        if windowSeconds > 0 {
+            windowStart = now.addingTimeInterval(-Double(windowSeconds))
+            xMax = Double(windowSeconds)
+        } else {
+            windowStart = forceHistory.first?.timestamp ?? now
+            let last = forceHistory.last?.timestamp ?? now
+            xMax = max(last.timeIntervalSince(windowStart), 0.001)
+        }
+
+        let filterStart = windowSeconds > 0
+            ? windowStart.addingTimeInterval(-1)
+            : windowStart
+        let filtered = windowSeconds > 0
+            ? forceHistory.filter { $0.timestamp >= filterStart }
+            : forceHistory
+
+        // Stretch denominator to cover device-clock drift so no sample exceeds x=1.0
+        let maxRaw = filtered.last.map { $0.timestamp.timeIntervalSince(windowStart) } ?? xMax
+        let actualXMax = max(maxRaw, 0.001)
+
+        // Normalize X values to 0...1
+        let visible: [(x: Double, force: Double)] = filtered.map {
+            let raw = $0.timestamp.timeIntervalSince(windowStart)
+            return (x: actualXMax > 0 ? raw / actualXMax : 0, force: $0.force)
+        }
+
+        return Chart {
+            // Tolerance band — explicit 0...1 X span
             if let target = targetWeight, let tol = tolerance {
                 RectangleMark(
+                    xStart: .value("Start", 0.0),
+                    xEnd: .value("End", 1.0),
                     yStart: .value("Lower", displayForce(target - tol)),
                     yEnd: .value("Upper", displayForce(target + tol))
                 )
                 .foregroundStyle(Color.gray.opacity(0.4))
             }
 
+            // Target line — explicit 0...1 X span
+            if let target = targetWeight {
+                RuleMark(
+                    xStart: .value("Start", 0.0),
+                    xEnd: .value("End", 1.0),
+                    y: .value("Target", displayForce(target))
+                )
+                .foregroundStyle(Color.green.opacity(0.7))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
+            }
+
             // Force line
-            ForEach(Array(visibleHistory.enumerated()), id: \.offset) { _, sample in
+            ForEach(Array(visible.enumerated()), id: \.offset) { _, sample in
                 LineMark(
-                    x: .value("Time", sample.timestamp),
+                    x: .value("Time", sample.x),
                     y: .value("Force", displayForce(sample.force))
                 )
                 .foregroundStyle(Color.blue)
                 .lineStyle(StrokeStyle(lineWidth: 2))
             }
-
-            // Target weight line (if set)
-            if let target = targetWeight {
-                RuleMark(y: .value("Target", displayForce(target)))
-                    .foregroundStyle(Color.green.opacity(0.7))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
-            }
         }
         .chartXAxis(.hidden)
+        .chartXScale(domain: 0.0...1.0)
+        .chartPlotStyle { plotArea in
+            plotArea.clipped()
+        }
         .chartYAxis {
             AxisMarks(position: .leading) { value in
                 AxisGridLine()
@@ -69,7 +109,7 @@ struct ForceGraphView: View {
                 }
             }
         }
-        .chartYScale(domain: yAxisDomain)
+        .chartYScale(domain: yAxisDomain(for: visible))
         .frame(height: 100)
         .padding(.horizontal)
         .padding(.vertical, 8)
@@ -77,8 +117,8 @@ struct ForceGraphView: View {
     }
 
     /// Calculate Y-axis domain based on visible data and target
-    private var yAxisDomain: ClosedRange<Double> {
-        let forces = visibleHistory.map { displayForce($0.force) }
+    private func yAxisDomain(for visible: [(x: Double, force: Double)]) -> ClosedRange<Double> {
+        let forces = visible.map { displayForce($0.force) }
         var lower = forces.min() ?? 0
         var upper = forces.max() ?? 10
 
@@ -137,5 +177,20 @@ struct ForceGraphView: View {
         windowSeconds: 10,
         targetWeight: nil,
         tolerance: nil
+    )
+}
+
+#Preview("Partial window") {
+    let now = Date()
+    let history: [(timestamp: Date, force: Double)] = (0..<30).map { i in
+        (timestamp: now.addingTimeInterval(Double(i) * 0.1 - 3),
+         force: 15 + Double.random(in: -1...1))
+    }
+    return ForceGraphView(
+        forceHistory: history,
+        useLbs: false,
+        windowSeconds: 10,
+        targetWeight: 15,
+        tolerance: 0.5
     )
 }
