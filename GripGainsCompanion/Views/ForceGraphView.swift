@@ -57,11 +57,7 @@ struct ForceGraphView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
             }
         }
-        .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 5)) { _ in
-                AxisGridLine()
-            }
-        }
+        .chartXAxis(.hidden)
         .chartYAxis {
             AxisMarks(position: .leading) { value in
                 AxisGridLine()
@@ -86,7 +82,7 @@ struct ForceGraphView: View {
         var lower = forces.min() ?? 0
         var upper = forces.max() ?? 10
 
-        // Include target weight and tolerance band in range if set
+        // Include target weight and tolerance band in range
         if let target = targetWeight {
             let targetDisplay = displayForce(target)
             let tolDisplay = tolerance != nil ? displayForce(tolerance!) : 0
@@ -94,10 +90,28 @@ struct ForceGraphView: View {
             upper = max(upper, targetDisplay + tolDisplay)
         }
 
-        // Add padding (at least 0.5 units to give breathing room)
-        let range = upper - lower
-        let padding = max(range * 0.05, 0.5)
-        return max(0, lower - padding)...(upper + padding)
+        let minRange = displayForce(2)
+
+        if let target = targetWeight {
+            // Center on target with ±1, expanding symmetrically if data exceeds
+            let targetDisplay = displayForce(target)
+            let halfRange = max(targetDisplay - lower, upper - targetDisplay, minRange / 2)
+            lower = targetDisplay - halfRange
+            upper = targetDisplay + halfRange
+        } else {
+            // No target: enforce minimum range centered on data
+            let currentRange = upper - lower
+            if currentRange < minRange {
+                let expand = (minRange - currentRange) / 2
+                lower -= expand
+                upper += expand
+            }
+        }
+
+        lower = max(0, lower)
+        if upper <= lower { upper = lower + minRange }
+
+        return lower...upper
     }
 }
 
