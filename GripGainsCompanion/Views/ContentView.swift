@@ -147,6 +147,7 @@ struct ContentView: View {
     @StateObject private var progressorHandler = ProgressorHandler()
     @StateObject private var activityManager = ActivityManager()
 
+    @State private var chartDataSource = ForceChartDataSource()
     @State private var isFailButtonEnabled = false
     @State private var isConnected = false
     @State private var skippedDevice = false
@@ -261,6 +262,7 @@ struct ContentView: View {
 
             if newState == .disconnected {
                 progressorHandler.reset()
+                chartDataSource.clear()
             }
         }
         .onChange(of: isFailButtonEnabled) { _, newValue in
@@ -334,7 +336,7 @@ struct ContentView: View {
 
     private var forceGraphView: some View {
         ForceGraphView(
-            forceHistory: progressorHandler.forceHistory,
+            forceHistory: chartDataSource.displayHistory,
             useLbs: useLbs,
             windowSeconds: forceGraphWindow,
             targetWeight: effectiveTargetWeight,
@@ -359,6 +361,7 @@ struct ContentView: View {
             onRecalibrate: {
                 showSettings = false
                 progressorHandler.recalibrate()
+                chartDataSource.clear()
                 webCoordinator.refreshButtonState()
             },
             scrapedTargetWeight: scrapedTargetWeight,
@@ -764,9 +767,14 @@ struct ContentView: View {
             repTracker.completeSet()
         }
 
-        // BLE force samples -> Handler
-        bluetoothManager.onForceSample = { force, timestamp in
+        // BLE force samples -> Handler + Chart data source
+        bluetoothManager.onForceSample = { [chartDataSource] force, timestamp in
             progressorHandler.processSample(force, timestamp: timestamp)
+            DispatchQueue.main.async {
+                if let ts = progressorHandler.lastDisplayTimestamp {
+                    chartDataSource.addSample(timestamp: ts, force: force)
+                }
+            }
         }
 
         // Handler grip failed -> Click fail or end session button

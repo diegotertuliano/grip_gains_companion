@@ -53,6 +53,9 @@ class ProgressorHandler: ObservableObject {
     // Force history for graph (timestamp, force value)
     @Published private(set) var forceHistory: [(timestamp: Date, force: Double)] = []
 
+    // Last computed display timestamp (for external consumers like ForceChartDataSource)
+    private(set) var lastDisplayTimestamp: Date?
+
     // Last device timestamp received (microseconds) - used for elapsed time calculation
     private var lastTimestamp: UInt32 = 0
 
@@ -211,6 +214,7 @@ class ProgressorHandler: ObservableObject {
                 displayTimestamp = firstDisplayTimestamp!
             }
 
+            lastDisplayTimestamp = displayTimestamp
             forceHistory.append((timestamp: displayTimestamp, force: rawWeight))
             processStateTransition(rawWeight: rawWeight, timestamp: timestamp)
         }
@@ -238,6 +242,7 @@ class ProgressorHandler: ObservableObject {
         sessionMean = nil
         sessionStdDev = nil
         forceHistory = []
+        lastDisplayTimestamp = nil
         firstDeviceTimestamp = nil
         firstDisplayTimestamp = nil
     }

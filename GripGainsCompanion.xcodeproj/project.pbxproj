@@ -34,6 +34,7 @@
 		7E69085E2EF5188500206778 /* GripTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085D2EF5188500206778 /* GripTimerAttributes.swift */; };
 		7E6908602EF5189300206778 /* ActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085F2EF5189300206778 /* ActivityManager.swift */; };
 		7E7ABC132EF3831100CC854B /* ForceGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7ABC122EF3831100CC854B /* ForceGraphView.swift */; };
+		7E7ABC152EF3831200CC854B /* ForceChartDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7ABC142EF3831200CC854B /* ForceChartDataSource.swift */; };
 		7EC12C912EF1195800A9D66C /* WeightFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8F2EF1195800A9D66C /* WeightFormatter.swift */; };
 		7EC12C922EF1195800A9D66C /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8E2EF1195800A9D66C /* Log.swift */; };
 		7EC12C932EF1195800A9D66C /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8D2EF1195800A9D66C /* HapticManager.swift */; };
@@ -131,6 +132,7 @@
 		7E69085D2EF5188500206778 /* GripTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GripTimerAttributes.swift; sourceTree = "<group>"; };
 		7E69085F2EF5189300206778 /* ActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityManager.swift; sourceTree = "<group>"; };
 		7E7ABC122EF3831100CC854B /* ForceGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceGraphView.swift; sourceTree = "<group>"; };
+		7E7ABC142EF3831200CC854B /* ForceChartDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceChartDataSource.swift; sourceTree = "<group>"; };
 		7EC12C8D2EF1195800A9D66C /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		7EC12C8E2EF1195800A9D66C /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		7EC12C8F2EF1195800A9D66C /* WeightFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightFormatter.swift; sourceTree = "<group>"; };
@@ -274,6 +276,7 @@
 			isa = PBXGroup;
 			children = (
 				7EF8A5DA2EF5ABA5008B9D03 /* FloatingWeightControl.swift */,
+				7E7ABC142EF3831200CC854B /* ForceChartDataSource.swift */,
 				7E7ABC122EF3831100CC854B /* ForceGraphView.swift */,
 				102 /* ContentView.swift */,
 				103 /* StatusBarView.swift */,
@@ -511,6 +514,7 @@
 				001 /* GripGainsCompanion.swift in Sources */,
 				002 /* ContentView.swift in Sources */,
 				7E69085E2EF5188500206778 /* GripTimerAttributes.swift in Sources */,
+				7E7ABC152EF3831200CC854B /* ForceChartDataSource.swift in Sources */,
 				7E7ABC132EF3831100CC854B /* ForceGraphView.swift in Sources */,
 				003 /* StatusBarView.swift in Sources */,
 				004 /* AppConstants.swift in Sources */,

@@ -21,13 +21,7 @@ struct ForceGraphView: View {
     }
 
     var body: some View {
-        if windowSeconds > 0 {
-            TimelineView(.periodic(from: .now, by: 1.0 / 60)) { timeline in
-                chartContent(now: timeline.date)
-            }
-        } else {
-            chartContent(now: Date())
-        }
+        chartContent(now: Date())
     }
 
     private func chartContent(now: Date) -> some View {
@@ -50,12 +44,24 @@ struct ForceGraphView: View {
             ? forceHistory.filter { $0.timestamp >= filterStart }
             : forceHistory
 
+        // Cap display points for chart performance (~2 points per logical pixel)
+        let maxDisplayPoints = 600
+        let downsampled: [(timestamp: Date, force: Double)]
+        if filtered.count > maxDisplayPoints {
+            let stride = Double(filtered.count - 1) / Double(maxDisplayPoints - 1)
+            downsampled = (0..<maxDisplayPoints).map { i in
+                filtered[min(Int(Double(i) * stride), filtered.count - 1)]
+            }
+        } else {
+            downsampled = filtered
+        }
+
         // Stretch denominator to cover device-clock drift so no sample exceeds x=1.0
-        let maxRaw = filtered.last.map { $0.timestamp.timeIntervalSince(windowStart) } ?? xMax
+        let maxRaw = downsampled.last.map { $0.timestamp.timeIntervalSince(windowStart) } ?? xMax
         let actualXMax = max(maxRaw, 0.001)
 
         // Normalize X values to 0...1
-        let visible: [(x: Double, force: Double)] = filtered.map {
+        let visible: [(x: Double, force: Double)] = downsampled.map {
             let raw = $0.timestamp.timeIntervalSince(windowStart)
             return (x: actualXMax > 0 ? raw / actualXMax : 0, force: $0.force)
         }
