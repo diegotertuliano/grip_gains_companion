@@ -145,26 +145,53 @@ enum JavaScriptBridge {
     /// MutationObserver script for real-time button state changes
     static let observerScript = """
         (function() {
-            function setupObserver() {
+            let currentButton = null;
+            let attributeObserver = null;
+
+            function reportButtonState() {
                 const button = document.querySelector('button.btn-fail-prominent');
-                if (!button) {
-                    // Button not ready, retry in 100ms
-                    setTimeout(setupObserver, 100);
-                    return;
+                const enabled = button !== null && !button.disabled;
+                window.webkit.messageHandlers.buttonState.postMessage(enabled);
+            }
+
+            function watchButtonAttributes(button) {
+                if (attributeObserver) {
+                    attributeObserver.disconnect();
                 }
-
-                const observer = new MutationObserver(function() {
-                    window.webkit.messageHandlers.buttonState.postMessage(!button.disabled);
+                attributeObserver = new MutationObserver(function() {
+                    reportButtonState();
                 });
-
-                // Watch ONLY the button, not entire body
-                observer.observe(button, {
+                attributeObserver.observe(button, {
                     attributes: true,
                     attributeFilter: ['disabled', 'class']
                 });
+            }
 
-                // Initial state
-                window.webkit.messageHandlers.buttonState.postMessage(!button.disabled);
+            function checkButton() {
+                const button = document.querySelector('button.btn-fail-prominent');
+                if (button && button !== currentButton) {
+                    currentButton = button;
+                    watchButtonAttributes(button);
+                    reportButtonState();
+                } else if (!button && currentButton) {
+                    currentButton = null;
+                    if (attributeObserver) {
+                        attributeObserver.disconnect();
+                        attributeObserver = null;
+                    }
+                    reportButtonState();
+                }
+            }
+
+            function setupObserver() {
+                const domObserver = new MutationObserver(function() {
+                    checkButton();
+                });
+                domObserver.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+                checkButton();
             }
 
             if (document.readyState === 'loading') {
