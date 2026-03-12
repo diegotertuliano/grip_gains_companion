@@ -352,7 +352,7 @@ struct ContentView: View {
             useLbs: useLbs,
             windowSeconds: forceGraphWindow,
             targetWeight: effectiveTargetWeight,
-            tolerance: weightTolerance
+            tolerance: effectiveWeightTolerance
         )
     }
 
@@ -543,6 +543,15 @@ struct ContentView: View {
             return manualTargetWeight
         }
         return scrapedTargetWeight
+    }
+
+    private var effectiveWeightTolerance: Double {
+        if enablePercentageThresholds, let target = effectiveTargetWeight {
+            let raw = target * tolerancePercentage
+            let floored = toleranceFloor > 0 ? max(raw, toleranceFloor) : raw
+            return toleranceCeiling > 0 ? min(floored, toleranceCeiling) : floored
+        }
+        return weightTolerance
     }
 
     // MARK: - Statistics Display
