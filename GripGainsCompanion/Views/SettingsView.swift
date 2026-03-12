@@ -524,9 +524,6 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
-                            Text("Set to match your WH-C06's unit setting. Use Auto to detect from broadcast, or override if readings appear doubled.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
                         }
 
                         Button(role: .destructive) {
@@ -812,6 +809,20 @@ struct SettingsView: View {
         onConnectDevice: {},
         onRecalibrate: {},
         scrapedTargetWeight: 20.0
+    )
+}
+
+#Preview("WHC06") {
+    SettingsView(
+        deviceName: "WH-C06_1234",
+        isDeviceConnected: true,
+        useLbs: .constant(false),
+        webCoordinator: WebViewCoordinator(),
+        onDisconnect: {},
+        onConnectDevice: {},
+        onRecalibrate: {},
+        scrapedTargetWeight: 20.0,
+        deviceShortName: "WH-C06"
     )
 }
 
