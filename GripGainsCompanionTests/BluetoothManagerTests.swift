@@ -150,15 +150,15 @@ final class BluetoothManagerTests: XCTestCase {
 
     // MARK: - Disconnect State Tests
 
-    func testDisconnectSetsConnectionStateToDisconnected() {
+    func testDisconnectRestartsScanning() {
         // Given: Manager might be in any state
         manager.startScanning()
 
-        // When: Disconnect
+        // When: Disconnect (default preserveAutoReconnect = false)
         manager.disconnect()
 
-        // Then: Connection state should be disconnected
-        XCTAssertEqual(manager.connectionState, .disconnected)
+        // Then: Should restart scanning so user can pick a new device
+        XCTAssertEqual(manager.connectionState, .scanning)
     }
 
     func testDisconnectCancelsBackgroundDisconnectTimer() {
