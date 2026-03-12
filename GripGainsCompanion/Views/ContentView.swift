@@ -191,6 +191,7 @@ struct ContentView: View {
     @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
     @AppStorage("enableEndSessionOnEarlyFail") private var enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
     @AppStorage("earlyFailThresholdPercent") private var earlyFailThresholdPercent: Double = AppConstants.defaultEarlyFailThresholdPercent
+    @AppStorage("whc06ScaleUnit") private var whc06ScaleUnit: String = AppConstants.defaultWHC06ScaleUnit.rawValue
     @State private var dragOffset: CGSize = .zero
     @State private var displayedMean: Double?
     @State private var displayedStdDev: Double?
@@ -260,9 +261,20 @@ struct ContentView: View {
                 HapticManager.success()
             }
 
+            // Apply WHC06 scale unit override when connected
+            if newState == .connected, bluetoothManager.connectedDeviceType == .weihengWHC06,
+               let unit = WHC06ScaleUnit(rawValue: whc06ScaleUnit) {
+                bluetoothManager.setWHC06ScaleUnit(unit)
+            }
+
             if newState == .disconnected {
                 progressorHandler.reset()
                 chartDataSource.clear()
+            }
+        }
+        .onChange(of: whc06ScaleUnit) { _, newValue in
+            if let unit = WHC06ScaleUnit(rawValue: newValue) {
+                bluetoothManager.setWHC06ScaleUnit(unit)
             }
         }
         .onChange(of: isFailButtonEnabled) { _, newValue in

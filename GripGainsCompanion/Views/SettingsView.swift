@@ -110,6 +110,7 @@ struct SettingsView: View {
     @AppStorage("enableEndSessionOnEarlyFail") private var enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
     @AppStorage("earlyFailThresholdPercent") private var earlyFailThresholdPercent: Double = AppConstants.defaultEarlyFailThresholdPercent
     @AppStorage("enableICloudSync") private var enableICloudSync = AppConstants.defaultEnableICloudSync
+    @AppStorage("whc06ScaleUnit") private var whc06ScaleUnit: String = AppConstants.defaultWHC06ScaleUnit.rawValue
     @AppStorage("engageThreshold") private var engageThreshold: Double = AppConstants.defaultEngageThreshold
     @AppStorage("failThreshold") private var failThreshold: Double = AppConstants.defaultFailThreshold
     @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
@@ -516,6 +517,18 @@ struct SettingsView: View {
                             }
                         }
 
+                        if deviceShortName == "WH-C06" {
+                            Picker("Scale Unit", selection: $whc06ScaleUnit) {
+                                ForEach(WHC06ScaleUnit.allCases, id: \.rawValue) { unit in
+                                    Text(unit.rawValue.capitalized).tag(unit.rawValue)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            Text("Set to match your WH-C06's unit setting. Use Auto to detect from broadcast, or override if readings appear doubled.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
                         Button(role: .destructive) {
                             onDisconnect()
                         } label: {
@@ -689,6 +702,9 @@ struct SettingsView: View {
 
         // Data
         enableICloudSync = AppConstants.defaultEnableICloudSync
+
+        // WHC06
+        whc06ScaleUnit = AppConstants.defaultWHC06ScaleUnit.rawValue
 
         // Fixed thresholds
         engageThreshold = AppConstants.defaultEngageThreshold

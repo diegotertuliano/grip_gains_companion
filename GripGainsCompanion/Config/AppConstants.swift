@@ -112,6 +112,16 @@ struct AppConstants {
 
     // MARK: - Unit Conversion
     static let kgToLbs: Double = 2.20462
+
+    // MARK: - WHC06 Scale Unit Override
+    static let defaultWHC06ScaleUnit = WHC06ScaleUnit.auto
+}
+
+// MARK: - WHC06 Scale Unit Override
+enum WHC06ScaleUnit: String, CaseIterable {
+    case auto
+    case kg
+    case lbs
 }
 
 // MARK: - RSSI Signal Thresholds

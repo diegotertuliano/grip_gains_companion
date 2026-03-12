@@ -100,6 +100,11 @@ class BluetoothManager: NSObject, ObservableObject {
 
     // MARK: - Public Methods
 
+    /// Set the WHC06 scale unit override (forwarded to the active WHC06 service)
+    func setWHC06ScaleUnit(_ unit: WHC06ScaleUnit) {
+        whc06Service?.scaleUnitOverride = unit
+    }
+
     func startScanning() {
         guard centralManager.state == .poweredOn else {
             Log.ble.error("Bluetooth not available")
@@ -167,6 +172,10 @@ class BluetoothManager: NSObject, ObservableObject {
 
         // Create and start WHC06 service
         whc06Service = WHC06Service()
+        if let raw = UserDefaults.standard.string(forKey: "whc06ScaleUnit"),
+           let unit = WHC06ScaleUnit(rawValue: raw) {
+            whc06Service?.scaleUnitOverride = unit
+        }
         whc06Service?.onForceSample = { [weak self] force, timestamp in
             self?.onForceSample?(force, timestamp)
         }

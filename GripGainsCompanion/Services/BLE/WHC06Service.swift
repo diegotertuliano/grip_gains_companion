@@ -6,6 +6,9 @@ class WHC06Service {
     /// Callback when force samples are received (force value in kg, timestamp in microseconds)
     var onForceSample: ((Double, UInt32) -> Void)?
 
+    /// Override for the scale's unit detection (bypasses broadcast unit byte)
+    var scaleUnitOverride: WHC06ScaleUnit = .auto
+
     /// Base timestamp for generating synthetic timestamps
     private var baseTimestamp: Date?
     private var sampleCounter: UInt32 = 0
@@ -84,14 +87,25 @@ class WHC06Service {
         // Get raw value in device's current unit
         let rawValue = Double(rawWeight) / WHC06Protocol.weightDivisor
 
-        // Read unit from byte 16 (low nibble)
-        let unitByte = data[WHC06Protocol.unitByteOffset] & 0x0f
+        // TODO: Investigate whether the unit byte (byte 16, low nibble) is reliably
+        // reported by all WHC06 devices. Users report doubled readings which could be
+        // caused by incorrect unit detection here, or by something else entirely.
+        // The scaleUnitOverride lets users work around the issue until we can confirm
+        // the root cause with device logs.
 
-        // Convert to kg if device is set to lbs
-        if unitByte == WHC06Protocol.unitLbs {
+        // Determine unit: use override if set, otherwise read from broadcast
+        let unitByte = data[WHC06Protocol.unitByteOffset] & 0x0f
+        switch scaleUnitOverride {
+        case .kg:
+            return rawValue
+        case .lbs:
             return rawValue * WHC06Protocol.lbsToKg
+        case .auto:
+            if unitByte == WHC06Protocol.unitLbs {
+                return rawValue * WHC06Protocol.lbsToKg
+            }
+            return rawValue
         }
-        return rawValue
     }
 
     // MARK: - Timestamp Generation
