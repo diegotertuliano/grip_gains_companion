@@ -184,9 +184,11 @@ class BluetoothManager: NSObject, ObservableObject {
         whc06Service?.onDisconnect = { [weak self] in
             guard let self = self else { return }
             Log.ble.info("WHC06 appears disconnected")
-            self.connectionState = .disconnected
             if self.shouldAutoReconnect {
                 self.isReconnecting = true
+            }
+            self.connectionState = .disconnected
+            if self.shouldAutoReconnect {
                 self.scheduleRetry()
             } else {
                 self.connectedDeviceName = nil
@@ -470,14 +472,18 @@ extension BluetoothManager: CBCentralManagerDelegate {
         } else {
             Log.ble.info("Disconnected")
         }
-        connectionState = .disconnected
         connectedPeripheral = nil
         progressorService = nil
         pitchSixService = nil
 
-        // Schedule indefinite retry if we should auto-reconnect
+        // Set isReconnecting BEFORE connectionState to prevent SwiftUI from
+        // briefly switching to scanner view and destroying the web view
         if shouldAutoReconnect {
             isReconnecting = true
+        }
+        connectionState = .disconnected
+
+        if shouldAutoReconnect {
             scheduleRetry()
         } else {
             connectedDeviceName = nil

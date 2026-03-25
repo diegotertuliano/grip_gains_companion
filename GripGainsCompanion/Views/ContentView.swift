@@ -227,27 +227,28 @@ struct ContentView: View {
         }
     }
 
-    var body: some View {
-        Group {
-            if isConnected || skippedDevice || bluetoothManager.isReconnecting {
-                mainView
-            } else {
-                ZStack {
-                    DeviceScannerView(
-                        bluetoothManager: bluetoothManager,
-                        onDeviceSelected: { device in
-                            bluetoothManager.connect(to: device)
-                        },
-                        onSkipDevice: {
-                            skippedDevice = true
-                        }
-                    )
+    private var showMainView: Bool {
+        isConnected || skippedDevice || bluetoothManager.isReconnecting
+    }
 
-                    // Hidden WebView to preload WebKit processes and cache page
-                    TimerWebView(coordinator: webCoordinator)
-                        .frame(width: 0, height: 0)
-                        .opacity(0)
-                }
+    var body: some View {
+        ZStack {
+            // TimerWebView is always in the hierarchy to survive reconnect state transitions.
+            // When scanner is shown, it's hidden behind it (zero size, no opacity).
+            mainView
+                .opacity(showMainView ? 1 : 0)
+                .allowsHitTesting(showMainView)
+
+            if !showMainView {
+                DeviceScannerView(
+                    bluetoothManager: bluetoothManager,
+                    onDeviceSelected: { device in
+                        bluetoothManager.connect(to: device)
+                    },
+                    onSkipDevice: {
+                        skippedDevice = true
+                    }
+                )
             }
         }
         .onAppear {
