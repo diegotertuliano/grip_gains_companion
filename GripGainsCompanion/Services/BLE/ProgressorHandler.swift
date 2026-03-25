@@ -63,6 +63,10 @@ class ProgressorHandler: ObservableObject {
     private var firstDeviceTimestamp: UInt32?
     private var firstDisplayTimestamp: Date?
 
+    // Reconnect: accumulated grip duration from before timestamp reset
+    private var needsStartTimestampReset = false
+    private var accumulatedGripDuration: TimeInterval = 0
+
     // MARK: - Target Weight State
 
     /// Target weight from website or manual input
@@ -182,7 +186,7 @@ class ProgressorHandler: ObservableObject {
     /// Elapsed seconds since grip started (0 if not gripping)
     var gripElapsedSeconds: Int {
         if case .gripping(_, let startTimestamp, _) = state {
-            return Int((lastTimestamp - startTimestamp) / 1_000_000)
+            return Int(accumulatedGripDuration) + Int((lastTimestamp &- startTimestamp) / 1_000_000)
         }
         return 0
     }
@@ -196,6 +200,15 @@ class ProgressorHandler: ObservableObject {
     func processSample(_ rawWeight: Double, timestamp: UInt32) {
         DispatchQueue.main.async { [self] in
             currentForce = rawWeight
+
+            // Reset grip startTimestamp after reconnect (device resets its timestamp counter)
+            if needsStartTimestampReset {
+                needsStartTimestampReset = false
+                if case .gripping(let baseline, _, let samples) = state {
+                    state = .gripping(baseline: baseline, startTimestamp: timestamp, samples: samples)
+                }
+            }
+
             lastTimestamp = timestamp
 
             // Calculate display timestamp from device timestamp to properly space batched samples
@@ -228,6 +241,17 @@ class ProgressorHandler: ObservableObject {
         resetCommonState()
     }
 
+    /// Prepare for device reconnect - reset timestamp references and remap grip start
+    /// Preserves baseline, grip state, and calibration. Does NOT recalibrate.
+    func prepareForReconnect() {
+        if case .gripping(_, let startTs, _) = state {
+            accumulatedGripDuration += Double(lastTimestamp &- startTs) / 1_000_000.0
+        }
+        firstDeviceTimestamp = nil
+        firstDisplayTimestamp = nil
+        needsStartTimestampReset = true
+    }
+
     /// Common reset logic shared between reset() and recalibrate()
     private func resetCommonState() {
         stopOffTargetTimer()
@@ -241,6 +265,8 @@ class ProgressorHandler: ObservableObject {
         forceHistory = []
         firstDeviceTimestamp = nil
         firstDisplayTimestamp = nil
+        needsStartTimestampReset = false
+        accumulatedGripDuration = 0
     }
 
     // MARK: - State Machine Logic
@@ -293,7 +319,7 @@ class ProgressorHandler: ObservableObject {
                 // Grip failed - keep statistics for display after grip ends
                 stopOffTargetTimer()
                 // Calculate duration from device timestamps (microseconds to seconds)
-                let duration = Double(timestamp - startTimestamp) / 1_000_000.0
+                let duration = accumulatedGripDuration + Double(timestamp &- startTimestamp) / 1_000_000.0
                 state = .idle(baseline: baseline)
                 canEngage = false
                 isOffTarget = false
@@ -323,6 +349,7 @@ class ProgressorHandler: ObservableObject {
         if canEngage && taredWeight >= effectiveEngageThreshold {
             // Start real grip session - needs full engage threshold
             weightMedian = nil
+            accumulatedGripDuration = 0
             state = .gripping(baseline: baseline, startTimestamp: timestamp, samples: [sample])
         } else if !canEngage && taredWeight >= weightCalibrationThreshold {
             // Start weight calibration - uses lower fixed threshold for easy measurement
@@ -345,6 +372,7 @@ class ProgressorHandler: ObservableObject {
         if canEngage && taredWeight >= effectiveEngageThreshold {
             // Switch to real grip session - needs full engage threshold
             weightMedian = nil
+            accumulatedGripDuration = 0
             state = .gripping(baseline: baseline, startTimestamp: timestamp, samples: [sample])
         } else if taredWeight >= weightCalibrationThreshold {
             // Above weight calibration threshold - continue measuring

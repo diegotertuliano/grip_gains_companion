@@ -257,6 +257,9 @@ struct ContentView: View {
         .onChange(of: bluetoothManager.connectionState) { _, newState in
             isConnected = (newState == .connected)
 
+            if newState == .connected {
+                progressorHandler.prepareForReconnect()
+            }
             if newState == .connected && enableHaptics {
                 HapticManager.success()
             }

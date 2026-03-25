@@ -180,8 +180,8 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             let timeData = payload[(startIndex + 4)..<(startIndex + 8)]
 
             // BLE sends 4-byte Float, convert to Double for consistency with rest of codebase
-            let weightFloat = weightData.withUnsafeBytes { $0.load(as: Float.self) }
-            let timestamp = timeData.withUnsafeBytes { $0.load(as: UInt32.self) }
+            let weightFloat = weightData.withUnsafeBytes { $0.loadUnaligned(as: Float.self) }
+            let timestamp = timeData.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
 
             onForceSample?(Double(weightFloat), timestamp)
         }
