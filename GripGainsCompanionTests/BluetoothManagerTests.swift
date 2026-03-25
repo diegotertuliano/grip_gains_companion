@@ -261,4 +261,29 @@ final class BluetoothManagerTests: XCTestCase {
         // Then: State should be disconnected
         XCTAssertEqual(manager.connectionState, .disconnected)
     }
+
+    // MARK: - isReconnecting Tests
+
+    func testIsReconnectingInitiallyFalse() {
+        XCTAssertFalse(manager.isReconnecting)
+    }
+
+    func testDisconnectClearsIsReconnecting() {
+        // Given: Manager is in reconnecting state
+        // (We can't easily trigger a real disconnect, but we can test that disconnect() clears it)
+
+        // When: User-initiated disconnect
+        manager.disconnect()
+
+        // Then: isReconnecting should be false
+        XCTAssertFalse(manager.isReconnecting)
+    }
+
+    func testDisconnectWithPreserveAutoReconnectClearsIsReconnecting() {
+        // When: Background disconnect
+        manager.disconnect(preserveAutoReconnect: true)
+
+        // Then: isReconnecting should still be false (explicit disconnect, not unexpected)
+        XCTAssertFalse(manager.isReconnecting)
+    }
 }

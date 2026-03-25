@@ -229,7 +229,7 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if isConnected || skippedDevice {
+            if isConnected || skippedDevice || bluetoothManager.isReconnecting {
                 mainView
             } else {
                 ZStack {
@@ -267,7 +267,7 @@ struct ContentView: View {
                 bluetoothManager.setWHC06ScaleUnit(unit)
             }
 
-            if newState == .disconnected {
+            if newState == .disconnected && !bluetoothManager.isReconnecting {
                 progressorHandler.reset()
                 chartDataSource.clear()
             }
@@ -335,10 +335,10 @@ struct ContentView: View {
 
     private var mainContent: some View {
         VStack(spacing: 0) {
-            if isConnected && showStatusBar {
+            if (isConnected || bluetoothManager.isReconnecting) && showStatusBar {
                 statusBarView
             }
-            if isConnected && showForceGraph {
+            if (isConnected || bluetoothManager.isReconnecting) && showForceGraph {
                 forceGraphView
             }
             TimerWebView(coordinator: webCoordinator)
@@ -570,7 +570,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var settingsButtonOverlay: some View {
-        if (!isConnected || !showStatusBar) && !showSettings {
+        if ((!isConnected && !bluetoothManager.isReconnecting) || !showStatusBar) && !showSettings {
             GeometryReader { geometry in
                 let buttonSize: CGFloat = 44
                 let defaultX = geometry.size.width - buttonSize - 16
@@ -674,6 +674,7 @@ struct ContentView: View {
             theme: theme,
             expanded: expandedForceBar,
             deviceShortName: bluetoothManager.selectedDeviceType.shortName,
+            reconnecting: bluetoothManager.isReconnecting,
             onUnitToggle: { useLbs.toggle() },
             onSettingsTap: { showSettings = true }
         )

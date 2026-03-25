@@ -43,6 +43,7 @@ class BluetoothManager: NSObject, ObservableObject {
     @Published var discoveredDevices: [ForceDevice] = []
     @Published var connectedDeviceName: String?
     @Published var connectedDeviceType: DeviceType?
+    @Published var isReconnecting: Bool = false
 
     /// Currently selected device type filter for scanning (persisted)
     @Published var selectedDeviceType: DeviceType = .tindeqProgressor {
@@ -162,6 +163,7 @@ class BluetoothManager: NSObject, ObservableObject {
         cancelRetryTimer()
         pendingDevice = device
         shouldAutoReconnect = true
+        isReconnecting = false
         connectionState = .connected
         connectedDeviceName = device.name
         connectedDeviceType = .weihengWHC06
@@ -186,6 +188,7 @@ class BluetoothManager: NSObject, ObservableObject {
             self.connectedDeviceName = nil
             self.connectedDeviceType = nil
             if self.shouldAutoReconnect {
+                self.isReconnecting = true
                 self.scheduleRetry()
             }
         }
@@ -271,6 +274,7 @@ class BluetoothManager: NSObject, ObservableObject {
 
         // Stop auto-reconnect
         shouldAutoReconnect = false
+        isReconnecting = false
         resetRetryState()
         cancelBackgroundDisconnectTimer()
         pendingDevice = nil
@@ -320,12 +324,15 @@ extension BluetoothManager: CBCentralManagerDelegate {
             startScanning()
         case .poweredOff:
             Log.ble.error("Bluetooth is off")
+            isReconnecting = false
             connectionState = .error("Bluetooth is off")
         case .unauthorized:
             Log.ble.error("Bluetooth unauthorized")
+            isReconnecting = false
             connectionState = .error("Bluetooth unauthorized")
         case .unsupported:
             Log.ble.error("Bluetooth unsupported")
+            isReconnecting = false
             connectionState = .error("Bluetooth unsupported")
         default:
             connectionState = .disconnected
@@ -382,6 +389,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
         // Reset retry state on successful connection
         resetRetryState()
+        isReconnecting = false
 
         connectionState = .connected
         connectedDeviceName = peripheral.name ?? "Unknown Device"
@@ -470,6 +478,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
         // Schedule indefinite retry if we should auto-reconnect
         if shouldAutoReconnect {
+            isReconnecting = true
             scheduleRetry()
         }
     }

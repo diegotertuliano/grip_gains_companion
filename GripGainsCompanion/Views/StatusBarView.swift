@@ -7,6 +7,7 @@ struct StatusBarView: View {
     let theme: ForceBarTheme
     let expanded: Bool
     let deviceShortName: String
+    let reconnecting: Bool
     let onUnitToggle: () -> Void
     let onSettingsTap: () -> Void
 
@@ -28,6 +29,7 @@ struct StatusBarView: View {
         theme: ForceBarTheme = .system,
         expanded: Bool = false,
         deviceShortName: String = "device",
+        reconnecting: Bool = false,
         onUnitToggle: @escaping () -> Void,
         onSettingsTap: @escaping () -> Void
     ) {
@@ -48,6 +50,7 @@ struct StatusBarView: View {
         self.theme = theme
         self.expanded = expanded
         self.deviceShortName = deviceShortName
+        self.reconnecting = reconnecting
         self.onUnitToggle = onUnitToggle
         self.onSettingsTap = onSettingsTap
     }
@@ -230,12 +233,12 @@ struct StatusBarView: View {
     }
 
     private var stateBadge: some View {
-        Text(state.stateText)
+        Text(reconnecting ? "RECONNECTING..." : state.stateText)
             .font(.caption)
             .fontWeight(.medium)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(state.stateColor)
+            .background(reconnecting ? .orange : state.stateColor)
             .foregroundColor(.white)
             .cornerRadius(4)
     }
