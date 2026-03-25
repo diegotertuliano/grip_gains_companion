@@ -185,11 +185,12 @@ class BluetoothManager: NSObject, ObservableObject {
             guard let self = self else { return }
             Log.ble.info("WHC06 appears disconnected")
             self.connectionState = .disconnected
-            self.connectedDeviceName = nil
-            self.connectedDeviceType = nil
             if self.shouldAutoReconnect {
                 self.isReconnecting = true
                 self.scheduleRetry()
+            } else {
+                self.connectedDeviceName = nil
+                self.connectedDeviceType = nil
             }
         }
         whc06Service?.start()
@@ -473,13 +474,14 @@ extension BluetoothManager: CBCentralManagerDelegate {
         connectedPeripheral = nil
         progressorService = nil
         pitchSixService = nil
-        connectedDeviceName = nil
-        connectedDeviceType = nil
 
         // Schedule indefinite retry if we should auto-reconnect
         if shouldAutoReconnect {
             isReconnecting = true
             scheduleRetry()
+        } else {
+            connectedDeviceName = nil
+            connectedDeviceType = nil
         }
     }
 }
