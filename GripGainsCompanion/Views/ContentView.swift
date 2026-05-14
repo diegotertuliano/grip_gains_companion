@@ -383,10 +383,11 @@ struct ContentView: View {
             supportsHardwareTare: bluetoothManager.supportsHardwareTare,
             onHardwareTare: {
                 showSettings = false
-                bluetoothManager.tareDevice()
-                progressorHandler.recalibrate()
-                chartDataSource.clear()
-                webCoordinator.refreshButtonState()
+                bluetoothManager.tareDevice {
+                    progressorHandler.recalibrate()
+                    chartDataSource.clear()
+                    webCoordinator.refreshButtonState()
+                }
             },
             scrapedTargetWeight: scrapedTargetWeight,
             deviceShortName: bluetoothManager.selectedDeviceType.shortName

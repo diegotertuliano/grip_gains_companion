@@ -13,6 +13,9 @@ class PitchSixService: NSObject, CBPeripheralDelegate {
     /// Callback when discovery times out
     var onDiscoveryTimeout: (() -> Void)?
 
+    /// Callback fired on successful write to the TX characteristic (one-shot consumers should re-set)
+    var onWriteComplete: (() -> Void)?
+
     /// Base timestamp for generating synthetic timestamps (PitchSix doesn't provide timestamps)
     private var baseTimestamp: Date?
     private var sampleCounter: UInt32 = 0
@@ -177,6 +180,7 @@ class PitchSixService: NSObject, CBPeripheralDelegate {
             return
         }
         Log.ble.info("PitchSix write successful")
+        onWriteComplete?()
     }
 
     func peripheral(_ peripheral: CBPeripheral,

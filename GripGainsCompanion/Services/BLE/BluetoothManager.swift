@@ -293,24 +293,54 @@ class BluetoothManager: NSObject, ObservableObject {
         }
     }
 
-    /// Send a hardware tare to the connected device.
-    /// Returns true if a tare command was actually issued.
-    @discardableResult
-    func tareDevice() -> Bool {
+    /// Send a hardware tare to the connected device, restart streaming if the
+    /// device pauses it after tare (Tindeq does), then invoke `completion` once
+    /// the device is ready for the software recalibration window. Always calls
+    /// `completion` exactly once. Falls through to immediate completion for
+    /// unsupported devices.
+    func tareDevice(completion: @escaping () -> Void) {
+        let settleDelay: TimeInterval = 0.2     // drain in-flight samples
+        let safetyTimeout: TimeInterval = 1.5   // chain budget
+
+        var finished = false
+        let finish: () -> Void = {
+            guard !finished else { return }
+            finished = true
+            completion()
+        }
+
         switch connectedDeviceType {
         case .tindeqProgressor:
-            guard let service = progressorService else { return false }
-            Log.ble.info("Hardware tare: Tindeq Progressor")
+            guard let service = progressorService else { finish(); return }
+            Log.ble.info("Hardware tare: Tindeq Progressor (tare -> start -> settle)")
+            // On 0x64 ack: re-send 0x65 to resume streaming (Tindeq pauses after tare).
+            service.onWriteComplete = {
+                service.onWriteComplete = {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + settleDelay, execute: finish)
+                }
+                service.startWeightMeasurement()
+            }
             service.tare()
-            return true
+
         case .pitchSixForceBoard:
-            guard let service = pitchSixService else { return false }
+            guard let service = pitchSixService else { finish(); return }
             Log.ble.info("Hardware tare: PitchSix Force Board")
+            service.onWriteComplete = {
+                DispatchQueue.main.asyncAfter(deadline: .now() + settleDelay, execute: finish)
+            }
             service.tare()
-            return true
+
         default:
             Log.ble.info("Hardware tare not supported for \(String(describing: self.connectedDeviceType))")
-            return false
+            finish()
+            return
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + safetyTimeout) {
+            if !finished {
+                Log.ble.info("Hardware tare chain stalled - proceeding anyway")
+                finish()
+            }
         }
     }
 
