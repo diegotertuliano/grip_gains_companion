@@ -60,6 +60,16 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
         peripheral.writeValue(AppConstants.progressorStartWeightCommand, for: writeChar, type: .withResponse)
     }
 
+    /// Send the tare command to zero the scale (no load should be applied)
+    func tare(writeType: CBCharacteristicWriteType = .withResponse) {
+        guard let writeChar = writeCharacteristic else {
+            Log.ble.error("Write characteristic not available for tare")
+            return
+        }
+        Log.ble.info("Sending Progressor tare command (0x64)")
+        peripheral.writeValue(AppConstants.progressorTareCommand, for: writeChar, type: writeType)
+    }
+
     /// Send the shutdown (sleep) command to power off the device
     func sendShutdown(writeType: CBCharacteristicWriteType = .withResponse) {
         guard let writeChar = writeCharacteristic else {

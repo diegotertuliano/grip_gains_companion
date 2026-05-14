@@ -285,6 +285,35 @@ class BluetoothManager: NSObject, ObservableObject {
         }
     }
 
+    /// True when the connected device supports a hardware tare command.
+    var supportsHardwareTare: Bool {
+        switch connectedDeviceType {
+        case .tindeqProgressor, .pitchSixForceBoard: return true
+        default: return false
+        }
+    }
+
+    /// Send a hardware tare to the connected device.
+    /// Returns true if a tare command was actually issued.
+    @discardableResult
+    func tareDevice() -> Bool {
+        switch connectedDeviceType {
+        case .tindeqProgressor:
+            guard let service = progressorService else { return false }
+            Log.ble.info("Hardware tare: Tindeq Progressor")
+            service.tare()
+            return true
+        case .pitchSixForceBoard:
+            guard let service = pitchSixService else { return false }
+            Log.ble.info("Hardware tare: PitchSix Force Board")
+            service.tare()
+            return true
+        default:
+            Log.ble.info("Hardware tare not supported for \(String(describing: self.connectedDeviceType))")
+            return false
+        }
+    }
+
     /// Send Progressor shutdown (0x6E) and then disconnect.
     /// Falls through to plain disconnect for non-Tindeq devices.
     /// - Parameters:

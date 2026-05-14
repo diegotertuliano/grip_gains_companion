@@ -75,6 +75,8 @@ struct SettingsView: View {
     let onDisconnect: () -> Void
     let onConnectDevice: () -> Void
     let onRecalibrate: () -> Void
+    let supportsHardwareTare: Bool
+    let onHardwareTare: () -> Void
 
     /// Target weight scraped from website (read-only display)
     let scrapedTargetWeight: Double?
@@ -297,12 +299,12 @@ struct SettingsView: View {
                         } label: {
                             HStack {
                                 Image(systemName: "arrow.triangle.2.circlepath")
-                                Text("Recalibrate Tare")
+                                Text("Recalibrate")
                             }
                         }
 
                         Toggle("Tare on Startup", isOn: $enableCalibration)
-                        Text("Zeros the scale when \(deviceShortName) connects to detect grip and fail states. Does not affect hardware tare or displayed force.")
+                        Text("Resets the app's baseline for detecting grip and fail states. Does not change the displayed weight.")
                             .font(.caption)
                             .foregroundColor(.secondary)
 
@@ -524,6 +526,21 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
+                        }
+
+                        if supportsHardwareTare {
+                            Button {
+                                onHardwareTare()
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "scalemass")
+                                    Text("Tare Device")
+                                }
+                            }
+                            Text("Zeros the \(deviceShortName)'s hardware reading. Remove all load before tapping.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
 
                         Button(role: .destructive) {
@@ -808,6 +825,8 @@ struct SettingsView: View {
         onDisconnect: {},
         onConnectDevice: {},
         onRecalibrate: {},
+        supportsHardwareTare: true,
+        onHardwareTare: {},
         scrapedTargetWeight: 20.0
     )
 }
@@ -821,6 +840,8 @@ struct SettingsView: View {
         onDisconnect: {},
         onConnectDevice: {},
         onRecalibrate: {},
+        supportsHardwareTare: false,
+        onHardwareTare: {},
         scrapedTargetWeight: 20.0,
         deviceShortName: "WH-C06"
     )
@@ -835,6 +856,8 @@ struct SettingsView: View {
         onDisconnect: {},
         onConnectDevice: {},
         onRecalibrate: {},
+        supportsHardwareTare: false,
+        onHardwareTare: {},
         scrapedTargetWeight: nil
     )
 }

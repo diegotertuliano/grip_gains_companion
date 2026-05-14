@@ -92,6 +92,7 @@ struct AppConstants {
 
     // MARK: - BLE Commands
     static let progressorStartWeightCommand = Data([101])
+    static let progressorTareCommand = Data([0x64])
     static let progressorShutdownCommand = Data([0x6E])
     static let pitchSixStartStreamingCommand = Data([0x04])
     static let pitchSixTareCommand = Data([0x05])
