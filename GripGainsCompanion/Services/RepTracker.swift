@@ -59,7 +59,13 @@ class RepTracker: ObservableObject {
 
     /// Update session context (for detecting exercise changes)
     func updateSessionContext(gripper: String?, side: String?) {
-        // If exercise changed, reset rep history
+        // Ignore partial/missing context — the session-preview-header is briefly
+        // absent between workouts on a Vue SPA, and we don't want a transient DOM
+        // gap to clear the current set's reps.
+        guard let gripper, let side, !gripper.isEmpty, !side.isEmpty else {
+            return
+        }
+
         if gripper != currentGripper || side != currentSide {
             resetForNewSet()
         }

@@ -220,64 +220,64 @@ enum JavaScriptBridge {
     /// MutationObserver script for real-time target weight and duration changes
     static let targetWeightObserverScript = """
         (function() {
+            // Sentinel distinct from any real value, so the first scrape always posts.
+            const UNSET = {};
+            let lastWeight = UNSET;
+            let lastDuration = UNSET;
+            let lastGripper = UNSET;
+            let lastSide = UNSET;
+
             function scrapeAndSendValues() {
                 const elements = document.querySelectorAll('.session-preview-header .text-white');
-                let foundWeight = false;
-                let foundDuration = false;
+                let weight = null;
+                let duration = null;
 
                 for (const elem of elements) {
                     const text = elem.textContent.trim();
 
-                    // Check for weight (contains kg or lbs)
-                    if (!foundWeight && (text.includes('kg') || text.includes('lbs') || text.includes('lb'))) {
-                        window.webkit.messageHandlers.targetWeight.postMessage(text);
-                        foundWeight = true;
+                    if (weight === null && (text.includes('kg') || text.includes('lbs') || text.includes('lb'))) {
+                        weight = text;
                     }
 
-                    // Check for duration (ends with 's' but not weight units)
-                    if (!foundDuration && text.endsWith('s') && !text.includes('kg') && !text.includes('lb')) {
+                    if (duration === null && text.endsWith('s') && !text.includes('kg') && !text.includes('lb')) {
                         const seconds = parseInt(text);
                         if (!isNaN(seconds) && seconds > 0) {
-                            window.webkit.messageHandlers.targetDuration.postMessage(seconds);
-                            foundDuration = true;
+                            duration = seconds;
                         }
                     }
                 }
 
-                if (!foundWeight) {
-                    window.webkit.messageHandlers.targetWeight.postMessage(null);
+                if (weight !== lastWeight) {
+                    window.webkit.messageHandlers.targetWeight.postMessage(weight);
+                    lastWeight = weight;
                 }
-                if (!foundDuration) {
-                    window.webkit.messageHandlers.targetDuration.postMessage(null);
+                if (duration !== lastDuration) {
+                    window.webkit.messageHandlers.targetDuration.postMessage(duration);
+                    lastDuration = duration;
                 }
 
-                // Scrape gripper type and side from purple text elements
                 const purpleElements = document.querySelectorAll('.session-preview-header .text-purple-200');
                 const gripper = purpleElements.length > 0 ? purpleElements[0].textContent.trim() : null;
                 const side = purpleElements.length > 1 ? purpleElements[1].textContent.trim() : null;
-                window.webkit.messageHandlers.sessionInfo.postMessage({ gripper: gripper, side: side });
+                if (gripper !== lastGripper || side !== lastSide) {
+                    window.webkit.messageHandlers.sessionInfo.postMessage({ gripper: gripper, side: side });
+                    lastGripper = gripper;
+                    lastSide = side;
+                }
             }
 
             function setupTargetObserver() {
-                const previewHeader = document.querySelector('.session-preview-header');
-                if (!previewHeader) {
-                    // Preview not ready, retry in 500ms
-                    setTimeout(setupTargetObserver, 500);
-                    return;
-                }
-
-                const observer = new MutationObserver(function() {
-                    scrapeAndSendValues();
-                });
-
-                // Watch for changes in the preview header
-                observer.observe(previewHeader, {
+                // Observe document.body so the observer survives Vue tearing down and
+                // recreating .session-preview-header (e.g. between workouts on the same
+                // session). An observer bound to a specific element instance dies once
+                // Vue replaces that node.
+                const observer = new MutationObserver(scrapeAndSendValues);
+                observer.observe(document.body, {
                     childList: true,
                     subtree: true,
                     characterData: true
                 });
 
-                // Send initial values
                 scrapeAndSendValues();
             }
 
@@ -440,60 +440,40 @@ enum JavaScriptBridge {
     /// MutationObserver script for real-time remaining time from timer display
     static let remainingTimeObserverScript = """
         (function() {
+            const UNSET = {};
+            let lastValue = UNSET;
+
             function scrapeAndSendRemainingTime() {
                 const timerValue = document.querySelector('.timer-value');
-                if (!timerValue) {
-                    window.webkit.messageHandlers.remainingTime.postMessage(null);
-                    return;
+                let seconds = null;
+
+                if (timerValue) {
+                    const text = timerValue.textContent.trim();
+                    const parsed = text.startsWith('+')
+                        ? -parseInt(text.substring(1))
+                        : parseInt(text);
+                    if (!isNaN(parsed)) {
+                        seconds = parsed;
+                    }
                 }
 
-                const text = timerValue.textContent.trim();
-                let seconds;
-
-                if (text.startsWith('+')) {
-                    // Past target: "+3" means 3 seconds overtime, store as -3
-                    seconds = -parseInt(text.substring(1));
-                } else {
-                    // Normal: "30" means 30 seconds remaining
-                    seconds = parseInt(text);
-                }
-
-                if (!isNaN(seconds)) {
+                if (seconds !== lastValue) {
                     window.webkit.messageHandlers.remainingTime.postMessage(seconds);
-                } else {
-                    window.webkit.messageHandlers.remainingTime.postMessage(null);
+                    lastValue = seconds;
                 }
             }
 
             function setupRemainingTimeObserver() {
-                // Watch for timer-value element to appear
-                const timerValue = document.querySelector('.timer-value');
-                if (!timerValue) {
-                    // Timer not ready, retry in 200ms
-                    setTimeout(setupRemainingTimeObserver, 200);
-                    return;
-                }
-
-                const observer = new MutationObserver(function() {
-                    scrapeAndSendRemainingTime();
-                });
-
-                // Watch the timer value for text changes
-                observer.observe(timerValue, {
+                // Observe document.body so the observer survives Vue tearing down and
+                // recreating .timer-value between workouts. An observer bound to a
+                // specific element instance dies once Vue replaces that node.
+                const observer = new MutationObserver(scrapeAndSendRemainingTime);
+                observer.observe(document.body, {
                     childList: true,
                     subtree: true,
                     characterData: true
                 });
 
-                // Also watch parent for class changes (timer state changes)
-                if (timerValue.parentElement) {
-                    observer.observe(timerValue.parentElement, {
-                        childList: true,
-                        subtree: true
-                    });
-                }
-
-                // Send initial value
                 scrapeAndSendRemainingTime();
             }
 
