@@ -1,6 +1,7 @@
 import CoreBluetooth
 import Combine
 import SwiftUI
+import UIKit
 import os
 
 // MARK: - Central Manager Protocol (for testability)
@@ -86,6 +87,7 @@ class BluetoothManager: NSObject, ObservableObject {
             selectedDeviceType = deviceType
         }
         centralManager = CBCentralManager(delegate: self, queue: .main)
+        registerAppLifecycleObservers()
     }
 
     /// Test initializer for dependency injection
@@ -97,6 +99,26 @@ class BluetoothManager: NSObject, ObservableObject {
             selectedDeviceType = deviceType
         }
         self.centralManager = centralManager
+        registerAppLifecycleObservers()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func registerAppLifecycleObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAppWillTerminate),
+            name: UIApplication.willTerminateNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleAppWillTerminate() {
+        guard connectionState == .connected else { return }
+        Log.ble.info("App will terminate - shutting down device")
+        sendShutdownAndDisconnect(preserveAutoReconnect: true, immediate: true)
     }
 
     // MARK: - Public Methods
@@ -258,8 +280,61 @@ class BluetoothManager: NSObject, ObservableObject {
             withTimeInterval: AppConstants.backgroundInactivityTimeout,
             repeats: false
         ) { [weak self] _ in
-            Log.ble.info("Background inactivity timeout - disconnecting")
-            self?.disconnect(preserveAutoReconnect: true)
+            Log.ble.info("Background inactivity timeout - shutting down device")
+            self?.sendShutdownAndDisconnect(preserveAutoReconnect: true, immediate: false)
+        }
+    }
+
+    /// Send Progressor shutdown (0x6E) and then disconnect.
+    /// Falls through to plain disconnect for non-Tindeq devices.
+    /// - Parameters:
+    ///   - preserveAutoReconnect: forwarded to `disconnect(preserveAutoReconnect:)`
+    ///   - immediate: when true, runs synchronously by spinning the run loop until
+    ///     the ATT write is acknowledged or a 1s budget elapses. Used on app
+    ///     termination, where we have to finish before the process is killed and
+    ///     can't rely on a future async callback. When false, returns after issuing
+    ///     the write and disconnects from `onWriteComplete` (or a 2s safety timeout).
+    func sendShutdownAndDisconnect(preserveAutoReconnect: Bool, immediate: Bool = false) {
+        guard connectedDeviceType == .tindeqProgressor,
+              let service = progressorService else {
+            disconnect(preserveAutoReconnect: preserveAutoReconnect)
+            return
+        }
+
+        if immediate {
+            // .withResponse forces bluetoothd to wait for the device's ATT ack;
+            // we spin the runloop so the delegate callback can fire before we
+            // tear down the link (otherwise cancelPeripheralConnection races the
+            // write and the device never receives 0x6E).
+            var writeCompleted = false
+            service.onWriteComplete = { writeCompleted = true }
+            service.sendShutdown(writeType: .withResponse)
+            let deadline = Date().addingTimeInterval(1.0)
+            while !writeCompleted && Date() < deadline {
+                RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
+            }
+            if !writeCompleted {
+                Log.ble.info("Shutdown write did not ack within budget - disconnecting anyway")
+            }
+            disconnect(preserveAutoReconnect: preserveAutoReconnect)
+            return
+        }
+
+        var disconnected = false
+        let finish: () -> Void = { [weak self] in
+            guard !disconnected else { return }
+            disconnected = true
+            self?.disconnect(preserveAutoReconnect: preserveAutoReconnect)
+        }
+
+        service.onWriteComplete = finish
+        service.sendShutdown(writeType: .withResponse)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            if !disconnected {
+                Log.ble.info("Shutdown write timeout - forcing disconnect")
+                finish()
+            }
         }
     }
 

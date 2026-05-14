@@ -13,6 +13,9 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
     /// Callback when discovery times out
     var onDiscoveryTimeout: (() -> Void)?
 
+    /// Callback fired on successful write to the control point (one-shot consumers should re-set)
+    var onWriteComplete: (() -> Void)?
+
     init(peripheral: CBPeripheral) {
         self.peripheral = peripheral
         super.init()
@@ -55,6 +58,16 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
         }
         Log.ble.info("Sending start weight command...")
         peripheral.writeValue(AppConstants.progressorStartWeightCommand, for: writeChar, type: .withResponse)
+    }
+
+    /// Send the shutdown (sleep) command to power off the device
+    func sendShutdown(writeType: CBCharacteristicWriteType = .withResponse) {
+        guard let writeChar = writeCharacteristic else {
+            Log.ble.error("Write characteristic not available for shutdown")
+            return
+        }
+        Log.ble.info("Sending Progressor shutdown command (0x6E)")
+        peripheral.writeValue(AppConstants.progressorShutdownCommand, for: writeChar, type: writeType)
     }
 
     // MARK: - CBPeripheralDelegate
@@ -141,6 +154,7 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             return
         }
         Log.ble.info("Write successful")
+        onWriteComplete?()
     }
 
     func peripheral(_ peripheral: CBPeripheral,
