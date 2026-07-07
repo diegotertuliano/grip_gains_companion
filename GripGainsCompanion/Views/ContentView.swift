@@ -768,6 +768,10 @@ struct ContentView: View {
     // MARK: - Combine Subscriptions
 
     private func setupSubscriptions() {
+        // Apply the saved web-audio mute state on launch (handles the app starting with the
+        // setting already off; didFinish reapplies after navigation once this is set).
+        webCoordinator.setWebsiteAudioMuted(!enableWebsiteSounds)
+
         // WebView button state
         webCoordinator.onButtonStateChanged = { enabled in
             isFailButtonEnabled = enabled

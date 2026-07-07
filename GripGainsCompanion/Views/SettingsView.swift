@@ -669,6 +669,12 @@ struct SettingsView: View {
             let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
             manualTargetText = String(format: "%.2f", displayValue)
         }
+        .onChange(of: enableWebsiteSounds) { _, enabled in
+            // Drive the web-audio mute from the sheet itself (the on-screen view), where the
+            // toggle change reliably fires — ContentView's matching onChange sits behind this
+            // sheet and isn't a dependable trigger.
+            webCoordinator.setWebsiteAudioMuted(!enabled)
+        }
         } // NavigationStack
         .sheet(isPresented: $showHistorySheet) {
             SessionHistorySheet()
