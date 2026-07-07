@@ -87,6 +87,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("enableHaptics") private var enableHaptics = AppConstants.defaultEnableHaptics
     @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
+    @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
     @AppStorage("showGripStats") private var showGripStats = AppConstants.defaultShowGripStats
     @AppStorage("showSetReview") private var showSetReview = AppConstants.defaultShowSetReview
     @AppStorage("showStatusBar") private var showStatusBar = AppConstants.defaultShowStatusBar
@@ -503,6 +504,7 @@ struct SettingsView: View {
                 Section("Feedback") {
                     Toggle("Haptic Feedback", isOn: $enableHaptics)
                     Toggle("Target Weight Sounds", isOn: $enableTargetSound)
+                    Toggle("Timer Countdown Sound", isOn: $enableTimerCountdownSound)
                     Toggle("Grip Statistics", isOn: $showGripStats)
                     Toggle("End-of-Set Summary", isOn: $showSetReview)
                 }

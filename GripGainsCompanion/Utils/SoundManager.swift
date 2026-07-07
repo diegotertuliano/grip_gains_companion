@@ -33,6 +33,16 @@ enum SoundManager {
         playTone(frequency: 440, duration: 0.15) // A4
     }
 
+    /// Play a timer countdown tone with distinct cues near the end
+    static func playCountdownTone(second: Int) {
+        switch second {
+        case 0:  playTone(frequency: 1320,    duration: 0.30) // E6
+        case 1:  playTone(frequency: 1174.66, duration: 0.24) // D6
+        case 2:  playTone(frequency: 660,     duration: 0.18) // E5
+        default: playTone(frequency: 880,     duration: 0.12) // A5
+        }
+    }
+
     private static func playTone(frequency: Double, duration: Double) {
         configureAudioSession()
 

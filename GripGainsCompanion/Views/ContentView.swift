@@ -156,9 +156,11 @@ struct ContentView: View {
     @State private var scrapedTargetWeight: Double?
     @State private var scrapedTargetDuration: Int?
     @State private var scrapedRemainingTime: Int?
+    @State private var countdownSound = CountdownSound(playSecond: SoundManager.playCountdownTone)
     @AppStorage("useLbs") private var useLbs = false
     @AppStorage("enableHaptics") private var enableHaptics = AppConstants.defaultEnableHaptics
     @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
+    @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
     @AppStorage("showStatusBar") private var showStatusBar = AppConstants.defaultShowStatusBar
     @AppStorage("expandedForceBar") private var expandedForceBar = AppConstants.defaultExpandedForceBar
     @AppStorage("showForceGraph") private var showForceGraph = AppConstants.defaultShowForceGraph
@@ -698,6 +700,17 @@ struct ContentView: View {
         progressorHandler.targetWeight = effectiveTargetWeight
     }
 
+    /// Feed the timer countdown into the beep state machine, but only during a
+    /// rest/pre-start countdown (fail button disabled). Passing `nil` resets it so
+    /// the next countdown cycle starts fresh.
+    private func updateCountdownSound() {
+        if enableTimerCountdownSound && !isFailButtonEnabled {
+            countdownSound.onRemainingTimeChanged(scrapedRemainingTime)
+        } else {
+            countdownSound.onRemainingTimeChanged(nil)
+        }
+    }
+
     /// Determine if we should end the session instead of failing
     private func shouldEndSessionOnEarlyFail() -> Bool {
         guard enableEndSessionOnEarlyFail,
@@ -754,6 +767,7 @@ struct ContentView: View {
         // WebView button state
         webCoordinator.onButtonStateChanged = { enabled in
             isFailButtonEnabled = enabled
+            updateCountdownSound()
         }
 
         // WebView target weight scraping
@@ -774,6 +788,7 @@ struct ContentView: View {
         // WebView remaining time scraping
         webCoordinator.onRemainingTimeChanged = { remaining in
             scrapedRemainingTime = remaining
+            updateCountdownSound()
         }
 
         // WebView weight options scraping
