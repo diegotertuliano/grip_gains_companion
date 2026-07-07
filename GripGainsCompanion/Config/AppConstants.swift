@@ -48,6 +48,7 @@ struct AppConstants {
     static let defaultEnableHaptics: Bool = true
     static let defaultEnableTargetSound: Bool = true
     static let defaultEnableTimerCountdownSound: Bool = true
+    static let defaultEnableWebsiteSounds: Bool = true
     static let defaultShowGripStats: Bool = true
     static let defaultShowSetReview: Bool = false
     static let defaultShowStatusBar: Bool = true

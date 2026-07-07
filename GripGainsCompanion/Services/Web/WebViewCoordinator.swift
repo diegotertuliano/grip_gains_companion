@@ -30,6 +30,9 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
     /// Callback when "Save to Database" button appears (end of set)
     var onSaveButtonAppeared: (() -> Void)?
 
+    /// Whether gripgains.ca's own (Web Audio) sounds are currently muted
+    var websiteAudioMuted = false
+
     override init() {
         super.init()
     }
@@ -43,6 +46,13 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         Task { @MainActor in
             try? await webView.evaluateJavaScript(JavaScriptBridge.observerScript)
+
+            // Reapply web-audio mute only when muted, so the default (sounds on) state
+            // leaves the freshly loaded page completely untouched.
+            if websiteAudioMuted {
+                try? await webView.evaluateJavaScript(JavaScriptBridge.websiteAudioMuteScript)
+                try? await webView.evaluateJavaScript(JavaScriptBridge.setWebsiteAudioMuted(true))
+            }
         }
     }
 
@@ -267,6 +277,18 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
             _ = try await webView?.evaluateJavaScript(JavaScriptBridge.setTargetWeightScript(weightKg: weightKg))
         } catch {
             Log.app.error("Error setting target weight: \(error.localizedDescription)")
+        }
+    }
+
+    /// Mute or unmute gripgains.ca's own sounds (Web Audio). The patch is injected lazily
+    /// the first time sounds are muted, so the default (unmuted) state never touches the page.
+    func setWebsiteAudioMuted(_ muted: Bool) {
+        websiteAudioMuted = muted
+        Task { @MainActor in
+            if muted {
+                try? await webView?.evaluateJavaScript(JavaScriptBridge.websiteAudioMuteScript)
+            }
+            try? await webView?.evaluateJavaScript(JavaScriptBridge.setWebsiteAudioMuted(muted))
         }
     }
 

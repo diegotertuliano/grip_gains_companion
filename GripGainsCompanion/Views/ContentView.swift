@@ -161,6 +161,7 @@ struct ContentView: View {
     @AppStorage("enableHaptics") private var enableHaptics = AppConstants.defaultEnableHaptics
     @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
     @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
+    @AppStorage("enableWebsiteSounds") private var enableWebsiteSounds = AppConstants.defaultEnableWebsiteSounds
     @AppStorage("showStatusBar") private var showStatusBar = AppConstants.defaultShowStatusBar
     @AppStorage("expandedForceBar") private var expandedForceBar = AppConstants.defaultExpandedForceBar
     @AppStorage("showForceGraph") private var showForceGraph = AppConstants.defaultShowForceGraph
@@ -256,6 +257,9 @@ struct ContentView: View {
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
             setupSubscriptions()
+        }
+        .onChange(of: enableWebsiteSounds) { _, enabled in
+            webCoordinator.setWebsiteAudioMuted(!enabled)
         }
         .onChange(of: bluetoothManager.connectionState) { _, newState in
             isConnected = (newState == .connected)

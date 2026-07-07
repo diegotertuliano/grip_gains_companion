@@ -103,6 +103,55 @@ enum JavaScriptBridge {
         })();
     """
 
+    /// Patch the Web Audio API so all output routes through a togglable master gain,
+    /// letting the app mute gripgains.ca's sounds. Injected at RUNTIME (via
+    /// evaluateJavaScript) only when the user turns Grip Gains sounds off — gripgains.ca
+    /// builds fresh nodes per sound and reconnects to destination each time, so this
+    /// catches every subsequent sound without a reload. Idempotent (install guard).
+    static let websiteAudioMuteScript = """
+        (function() {
+            if (window.__ggAudioMuteInstalled) return;
+            window.__ggAudioMuteInstalled = true;
+            window.__ggAudioMuted = window.__ggAudioMuted || false;
+
+            const masterGains = [];
+            window.__ggSetAudioMuted = function(muted) {
+                window.__ggAudioMuted = !!muted;
+                masterGains.forEach(function(g) {
+                    try { g.gain.value = window.__ggAudioMuted ? 0 : 1; } catch (e) {}
+                });
+            };
+
+            if (!window.AudioNode) return;
+            const origConnect = AudioNode.prototype.connect;
+            const masterForCtx = new WeakMap();
+
+            AudioNode.prototype.connect = function(destination) {
+                try {
+                    const ctx = this.context;
+                    if (ctx && destination === ctx.destination) {
+                        let mg = masterForCtx.get(ctx);
+                        if (!mg) {
+                            mg = ctx.createGain();
+                            mg.gain.value = window.__ggAudioMuted ? 0 : 1;
+                            origConnect.call(mg, ctx.destination);
+                            masterForCtx.set(ctx, mg);
+                            masterGains.push(mg);
+                        }
+                        return origConnect.call(this, mg);
+                    }
+                } catch (e) {}
+                return origConnect.apply(this, arguments);
+            };
+        })();
+    """
+
+    /// Apply the current mute state to the page's Web Audio graph (no-op if the patch
+    /// was never installed, i.e. the user has never muted).
+    static func setWebsiteAudioMuted(_ muted: Bool) -> String {
+        "if (window.__ggSetAudioMuted) { window.__ggSetAudioMuted(\(muted)); }"
+    }
+
     /// Click the fail button
     static let clickFailButton = """
         (function() {
