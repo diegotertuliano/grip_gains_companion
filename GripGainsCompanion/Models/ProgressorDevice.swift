@@ -7,12 +7,14 @@ import CoreBluetooth
 enum DeviceType: String, CaseIterable, Codable {
     case tindeqProgressor
     case pitchSixForceBoard
+    case jinlianCTS500
     case weihengWHC06
 
     var displayName: String {
         switch self {
         case .tindeqProgressor: return "Tindeq Progressor"
         case .pitchSixForceBoard: return "PitchSix Force Board"
+        case .jinlianCTS500: return "Jinlian CTS500"
         case .weihengWHC06: return "Weiheng WH-C06"
         }
     }
@@ -21,6 +23,7 @@ enum DeviceType: String, CaseIterable, Codable {
         switch self {
         case .tindeqProgressor: return "Tindeq"
         case .pitchSixForceBoard: return "PitchSix"
+        case .jinlianCTS500: return "CTS500"
         case .weihengWHC06: return "WH-C06"
         }
     }
@@ -28,22 +31,32 @@ enum DeviceType: String, CaseIterable, Codable {
     /// Whether this device uses GATT connection (vs advertisement-only)
     var usesGATTConnection: Bool {
         switch self {
-        case .tindeqProgressor, .pitchSixForceBoard: return true
+        case .tindeqProgressor, .pitchSixForceBoard, .jinlianCTS500: return true
         case .weihengWHC06: return false
         }
     }
 
     /// Detect device type from advertisement data
     static func detect(name: String?, advertisementData: [String: Any]) -> DeviceType? {
+        let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+        let names = [name, advertisedName].compactMap { $0 }
+
         // Tindeq: name starts with "Progressor"
-        if let name = name, name.hasPrefix("Progressor") {
+        if names.contains(where: { $0.hasPrefix("Progressor") }) {
             return .tindeqProgressor
         }
 
         // PitchSix: name contains "Force Board" or "PitchSix" or "Forceboard"
-        if let name = name,
-           name.contains("Force Board") || name.contains("PitchSix") || name.contains("Forceboard") {
+        if names.contains(where: {
+            $0.contains("Force Board") || $0.contains("PitchSix") || $0.contains("Forceboard")
+        }) {
             return .pitchSixForceBoard
+        }
+
+        // Jinlian/Jlyscales CTS500: known firmware names
+        if names.contains(where: { $0.caseInsensitiveCompare("CTS-300") == .orderedSame ||
+            $0.caseInsensitiveCompare("CTS500") == .orderedSame }) {
+            return .jinlianCTS500
         }
 
         // WHC06: manufacturer ID 0x0100

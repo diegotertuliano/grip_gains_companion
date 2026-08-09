@@ -63,6 +63,7 @@ class BluetoothManager: NSObject, ObservableObject {
     // Device-specific services
     private var progressorService: ProgressorService?
     private var pitchSixService: PitchSixService?
+    private var cts500Service: CTS500Service?
     private var whc06Service: WHC06Service?
 
     private var peripheralCache: [UUID: CBPeripheral] = [:]
@@ -288,7 +289,7 @@ class BluetoothManager: NSObject, ObservableObject {
     /// True when the connected device supports a hardware tare command.
     var supportsHardwareTare: Bool {
         switch connectedDeviceType {
-        case .tindeqProgressor, .pitchSixForceBoard: return true
+        case .tindeqProgressor, .pitchSixForceBoard, .jinlianCTS500: return true
         default: return false
         }
     }
@@ -330,6 +331,14 @@ class BluetoothManager: NSObject, ObservableObject {
             }
             service.tare()
 
+        case .jinlianCTS500:
+            guard let service = cts500Service else { finish(); return }
+            Log.ble.info("Hardware tare: Jinlian CTS500")
+            service.onTareComplete = {
+                DispatchQueue.main.asyncAfter(deadline: .now() + settleDelay, execute: finish)
+            }
+            service.tare()
+
         default:
             Log.ble.info("Hardware tare not supported for \(String(describing: self.connectedDeviceType))")
             finish()
@@ -338,6 +347,7 @@ class BluetoothManager: NSObject, ObservableObject {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + safetyTimeout) {
             if !finished {
+                self.cts500Service?.onTareComplete = nil
                 Log.ble.info("Hardware tare chain stalled - proceeding anyway")
                 finish()
             }
@@ -421,6 +431,7 @@ class BluetoothManager: NSObject, ObservableObject {
         // Stop device-specific services
         whc06Service?.stop()
         whc06Service = nil
+        cts500Service = nil
         pitchSixService = nil
         progressorService = nil
 
@@ -547,6 +558,9 @@ extension BluetoothManager: CBCentralManagerDelegate {
         case .pitchSixForceBoard:
             setupPitchSixService(peripheral: peripheral)
 
+        case .jinlianCTS500:
+            setupCTS500Service(peripheral: peripheral)
+
         case .weihengWHC06:
             // WHC06 doesn't use GATT connection, this shouldn't happen
             break
@@ -583,6 +597,21 @@ extension BluetoothManager: CBCentralManagerDelegate {
         pitchSixService?.discoverServices()
     }
 
+    private func setupCTS500Service(peripheral: CBPeripheral) {
+        cts500Service = CTS500Service(peripheral: peripheral)
+        cts500Service?.onForceSample = { [weak self] force, timestamp in
+            self?.onForceSample?(force, timestamp)
+        }
+        cts500Service?.onDiscoveryTimeout = { [weak self] in
+            guard let self = self else { return }
+            Log.ble.error("CTS500 discovery timeout - disconnecting to retry")
+            if let peripheral = self.connectedPeripheral {
+                self.centralManager.cancelPeripheralConnection(peripheral)
+            }
+        }
+        cts500Service?.discoverServices()
+    }
+
     func centralManager(_ central: CBCentralManager,
                         didFailToConnect peripheral: CBPeripheral,
                         error: Error?) {
@@ -591,6 +620,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
         connectedPeripheral = nil
         progressorService = nil
         pitchSixService = nil
+        cts500Service = nil
         connectedDeviceName = nil
         connectedDeviceType = nil
 
@@ -609,6 +639,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
         connectedPeripheral = nil
         progressorService = nil
         pitchSixService = nil
+        cts500Service = nil
 
         // Set isReconnecting BEFORE connectionState to prevent SwiftUI from
         // briefly switching to scanner view and destroying the web view

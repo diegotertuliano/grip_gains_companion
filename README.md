@@ -25,6 +25,7 @@ An unofficial iOS companion app for [gripgains.ca](https://gripgains.ca/) that a
 - Supported devices (optional - the app works without one if you just want to keep the screen awake):
   - Tindeq Progressor
   - PitchSix
+  - Jinlian CTS500
   - WHC06
 
 ## Installation
