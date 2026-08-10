@@ -89,6 +89,11 @@ struct AppConstants {
     static let pitchSixWeightServiceUUID = CBUUID(string: "467A8516-6E39-11EB-9439-0242AC130002")
     static let pitchSixWeightTxCharacteristicUUID = CBUUID(string: "467A8517-6E39-11EB-9439-0242AC130002")
 
+    // MARK: - Jinlian CTS500 BLE UUIDs
+    static let cts500ServiceUUID = CBUUID(string: "0000FFE0-0000-1000-8000-00805F9B34FB")
+    static let cts500NotifyCharacteristicUUID = CBUUID(string: "0000FFE1-0000-1000-8000-00805F9B34FB")
+    static let cts500WriteCharacteristicUUID = CBUUID(string: "0000FFE2-0000-1000-8000-00805F9B34FB")
+
     // MARK: - WHC06 BLE Constants
     static let whc06ManufacturerId: UInt16 = 0x0100  // 256 decimal
 

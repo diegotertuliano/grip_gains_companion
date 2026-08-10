@@ -21,6 +21,8 @@
 		014 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115 /* DeviceScannerView.swift */; };
 		015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116 /* SettingsView.swift */; };
 		016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 117 /* Assets.xcassets */; };
+		C7A500000000000000000001 /* CTS500Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A500000000000000000002 /* CTS500Service.swift */; };
+		C7A500000000000000000003 /* CTS500ServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A500000000000000000004 /* CTS500ServiceTests.swift */; };
 		0B462D70E3FA1E36729D704A /* ShareableRepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 614D9441976105B809189772 /* ShareableRepView.swift */; };
 		37011416446AF3434D1C5369 /* SessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 473F759D263D28383DD65F85 /* SessionDetailView.swift */; };
 		4CDD7A6392A974ADCC1BA4EF /* SessionPersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE701C4BAEEA091DDA257D2 /* SessionPersistenceService.swift */; };
@@ -147,6 +149,8 @@
 		7EF8A5DA2EF5ABA5008B9D03 /* FloatingWeightControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWeightControl.swift; sourceTree = "<group>"; };
 		808323B82D7B521EFBCE4903 /* RepLog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RepLog.swift; sourceTree = "<group>"; };
 		C66A2864AAA43AFBAAB85C8D /* WHC06Service.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WHC06Service.swift; sourceTree = "<group>"; };
+		C7A500000000000000000002 /* CTS500Service.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CTS500Service.swift; sourceTree = "<group>"; };
+		C7A500000000000000000004 /* CTS500ServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CTS500ServiceTests.swift; sourceTree = "<group>"; };
 		D56A3B12ADFD235FB29F9F0F /* RepResult.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RepResult.swift; sourceTree = "<group>"; };
 		E8BB91A15E6DCBC48435254B /* CSVExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CSVExporter.swift; sourceTree = "<group>"; };
 		F1A2B3C4D5E6F7A8B9C0D1E2 /* StatisticsUtilities.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatisticsUtilities.swift; sourceTree = "<group>"; };
@@ -304,6 +308,7 @@
 				108 /* ProgressorService.swift */,
 				109 /* ProgressorHandler.swift */,
 				5B14E028ADA507B3BEE5EA08 /* PitchSixService.swift */,
+				C7A500000000000000000002 /* CTS500Service.swift */,
 				C66A2864AAA43AFBAAB85C8D /* WHC06Service.swift */,
 			);
 			path = BLE;
@@ -375,6 +380,7 @@
 			isa = PBXGroup;
 			children = (
 				7E5D1A112EF966DA001C3436 /* BluetoothManagerTests.swift */,
+				C7A500000000000000000004 /* CTS500ServiceTests.swift */,
 				7E5D1A132EF966DA001C3436 /* Mocks */,
 				T101 /* WeightFormatterTests.swift */,
 				T102 /* ProgressorHandlerTests.swift */,
@@ -555,6 +561,7 @@
 				7B568597E44C895292E9C4E8 /* ShareableSetSummaryView.swift in Sources */,
 				E6639698A6C48493DA681EBC /* ImageShareUtility.swift in Sources */,
 				A0E7AA75843AEABB1967B43B /* PitchSixService.swift in Sources */,
+				C7A500000000000000000001 /* CTS500Service.swift in Sources */,
 				94B55C388F1F3D2CD3DB23C6 /* WHC06Service.swift in Sources */,
 				92AD2C957E72998E10EE8021 /* SessionLog.swift in Sources */,
 				7A7727023DAA001C2F657C65 /* RepLog.swift in Sources */,
@@ -587,6 +594,7 @@
 				T005 /* RepResultTests.swift in Sources */,
 				7E5D1A142EF966DA001C3436 /* MockCentralManager.swift in Sources */,
 				7E5D1A152EF966DA001C3436 /* BluetoothManagerTests.swift in Sources */,
+				C7A500000000000000000003 /* CTS500ServiceTests.swift in Sources */,
 				533C865FA85F1BA6AFC324D2 /* SetStatisticsTests.swift in Sources */,
 				T006 /* ObserverScriptTests.swift in Sources */,
 			);

@@ -286,4 +286,10 @@ final class BluetoothManagerTests: XCTestCase {
         // Then: isReconnecting should still be false (explicit disconnect, not unexpected)
         XCTAssertFalse(manager.isReconnecting)
     }
+
+    func testCTS500SupportsHardwareTare() {
+        manager.connectedDeviceType = .jinlianCTS500
+
+        XCTAssertTrue(manager.supportsHardwareTare)
+    }
 }
