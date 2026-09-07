@@ -15,6 +15,21 @@ final class WebViewCoordinatorTests: XCTestCase {
         super.tearDown()
     }
 
+    func testPreparationPhaseIsCurrentInsideCallback() {
+        let coordinator = self.coordinator!
+        var phases: [Bool] = []
+        coordinator.onPreparationStateChanged = { preparing in
+            XCTAssertEqual(coordinator.isPreparationPhase, preparing)
+            phases.append(coordinator.isPreparationPhase)
+        }
+        XCTAssertFalse(coordinator.isPreparationPhase)
+        coordinator.updatePreparationState(true)  // Initial countdown, before any rep.
+        coordinator.updatePreparationState(false) // Rep starts.
+        coordinator.updatePreparationState(true)  // Rest.
+        coordinator.updatePreparationState(false) // Timer exits.
+        XCTAssertEqual(phases, [true, false, true, false])
+    }
+
     // MARK: - parseWeight Tests
 
     func testParseKgWithUnit() {

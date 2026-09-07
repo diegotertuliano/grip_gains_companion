@@ -491,6 +491,7 @@ enum JavaScriptBridge {
         (function() {
             const UNSET = {};
             let lastValue = UNSET;
+            let lastPreparation = UNSET;
 
             function scrapeAndSendRemainingTime() {
                 const timerValue = document.querySelector('.timer-value');
@@ -504,6 +505,17 @@ enum JavaScriptBridge {
                     if (!isNaN(parsed)) {
                         seconds = parsed;
                     }
+                }
+
+                // These labels are emitted by the timer's current phase computed property.
+                // A disabled/missing Fail button alone also describes setup and pause.
+                const status = document.querySelector('.timer-status')?.textContent.trim() || '';
+                const fail = document.querySelector('button.btn-fail-prominent');
+                const preparation = seconds !== null && seconds >= 0 && !!fail && fail.disabled &&
+                    /^(get ready|rest \\d+|ready for rep \\d+)$/i.test(status);
+                if (preparation !== lastPreparation) {
+                    window.webkit.messageHandlers.preparationState.postMessage(preparation);
+                    lastPreparation = preparation;
                 }
 
                 if (seconds !== lastValue) {
@@ -520,7 +532,9 @@ enum JavaScriptBridge {
                 observer.observe(document.body, {
                     childList: true,
                     subtree: true,
-                    characterData: true
+                    characterData: true,
+                    attributes: true,
+                    attributeFilter: ["disabled", "class"]
                 });
 
                 scrapeAndSendRemainingTime();

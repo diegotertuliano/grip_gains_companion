@@ -47,6 +47,107 @@ final class ProgressorHandlerTests: XCTestCase {
         waitForMainQueue()
     }
 
+    func testPreparationUsesConfiguredThresholdsWithoutRecordingRep() {
+        setupIdleStateWithZeroBaseline()
+        handler.targetWeight = 20
+        handler.preparationFeedbackEnabled = true
+        handler.canEngage = false
+        handler.enablePercentageThresholds = true
+        handler.engagePercentage = 0.5
+        handler.engageFloor = 3
+        handler.engageCeiling = 8
+        var directions: [Double] = []
+        handler.preparationOffTarget.sink { directions.append($0) }.store(in: &cancellables)
+        handler.gripFailed.sink { XCTFail("Preparation cannot fail a rep") }.store(in: &cancellables)
+        handler.gripDisengaged.sink { _ in XCTFail("Preparation cannot record a rep") }.store(in: &cancellables)
+        handler.offTargetChanged.sink { _ in XCTFail("Preparation cannot emit rep feedback/haptics") }.store(in: &cancellables)
+        processTestSample(7.9)
+        waitForMainQueue()
+        XCTAssertTrue(directions.isEmpty)
+        processTestSample(8)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-12])
+        XCTAssertFalse(handler.engaged)
+        XCTAssertNil(handler.sessionMean)
+        // Percentage release is 4 kg, even though the fixed fail threshold is 1 kg.
+        processTestSample(3.9)
+        processTestSample(5)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-12])
+        processTestSample(8)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-12, -12])
+        handler.preparationFeedbackEnabled = false
+        processTestSample(25)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-12, -12])
+    }
+
+    func testPreparationFixedThresholdAndRepHandoff() {
+        setupIdleStateWithZeroBaseline()
+        handler.targetWeight = 20
+        handler.enablePercentageThresholds = false
+        handler.engageThreshold = 3
+        handler.failThreshold = 1
+        handler.preparationFeedbackEnabled = true
+        var directions: [Double] = []
+        handler.preparationOffTarget.sink { directions.append($0) }.store(in: &cancellables)
+        processTestSample(2.9)
+        waitForMainQueue()
+        XCTAssertTrue(directions.isEmpty)
+        processTestSample(3)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-17])
+        handler.canEngage = true
+        processTestSample(20)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+        XCTAssertEqual(directions, [-17])
+    }
+
+    func testPreparationSilentDuringCalibrationAndResetsOnTargetChange() {
+        handler.targetWeight = 20
+        handler.preparationFeedbackEnabled = true
+        var directions: [Double] = []
+        handler.preparationOffTarget.sink { directions.append($0) }.store(in: &cancellables)
+        processTestSample(15)
+        waitForMainQueue()
+        XCTAssertTrue(handler.calibrating)
+        XCTAssertTrue(directions.isEmpty)
+        handler.reset()
+        setupIdleStateWithZeroBaseline()
+        processTestSample(10)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-10])
+        handler.targetWeight = 30
+        processTestSample(10)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-10])
+        processTestSample(15)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-10, -15])
+        handler.prepareForReconnect()
+        processTestSample(10)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-10, -15])
+    }
+
+    func testInitialPreparationStartsWhileAlreadyHoldingInWeightCalibration() {
+        setupIdleStateWithZeroBaseline()
+        handler.targetWeight = 20
+        var directions: [Double] = []
+        handler.preparationOffTarget.sink { directions.append($0) }.store(in: &cancellables)
+        processTestSample(15)
+        waitForMainQueue()
+        XCTAssertTrue(directions.isEmpty)
+        XCTAssertFalse(handler.engaged)
+        handler.preparationFeedbackEnabled = true
+        processTestSample(15)
+        waitForMainQueue()
+        XCTAssertEqual(directions, [-5])
+        XCTAssertFalse(handler.engaged)
+    }
+
     // MARK: - Median Tests
 
     func testMedianOddCount() {

@@ -70,7 +70,9 @@ class ProgressorHandler: ObservableObject {
     // MARK: - Target Weight State
 
     /// Target weight from website or manual input
-    var targetWeight: Double?
+    var targetWeight: Double? {
+        didSet { if targetWeight != oldValue { preparationFeedback.reset() } }
+    }
 
     /// Tolerance for off-target detection
     var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
@@ -101,7 +103,15 @@ class ProgressorHandler: ObservableObject {
     // MARK: - External Input
 
     /// Whether engagement is currently allowed (fail button enabled)
-    var canEngage: Bool = false
+    var canEngage: Bool = false {
+        didSet { if canEngage != oldValue { preparationFeedback.reset() } }
+    }
+
+    var preparationFeedbackEnabled = false {
+        didSet { if !preparationFeedbackEnabled { preparationFeedback.reset() } }
+    }
+    private var preparationFeedback = PreparationFeedback()
+    let preparationOffTarget = PassthroughSubject<Double, Never>()
 
     /// Whether to run calibration on startup (default: true)
     var enableCalibration: Bool = true
@@ -227,6 +237,15 @@ class ProgressorHandler: ObservableObject {
             forceHistory.append((timestamp: displayTimestamp, force: rawWeight))
             onSampleProcessed?(displayTimestamp, rawWeight)
             processStateTransition(rawWeight: rawWeight, timestamp: timestamp)
+            if let difference = preparationFeedback.update(
+                rawWeight: rawWeight, baseline: state.baseline, target: targetWeight,
+                engageThreshold: effectiveEngageThreshold, releaseThreshold: effectiveFailThreshold,
+                tolerance: effectiveTolerance,
+                eligible: preparationFeedbackEnabled && !canEngage && !engaged && !calibrating && !waitingForSamples,
+                now: ProcessInfo.processInfo.systemUptime
+            ) {
+                preparationOffTarget.send(difference)
+            }
         }
     }
 
@@ -244,6 +263,7 @@ class ProgressorHandler: ObservableObject {
     /// Prepare for device reconnect - reset timestamp references and remap grip start
     /// Preserves baseline, grip state, and calibration. Does NOT recalibrate.
     func prepareForReconnect() {
+        preparationFeedback.reset()
         if case .gripping(_, let startTs, _) = state {
             accumulatedGripDuration += Double(lastTimestamp &- startTs) / 1_000_000.0
         }
@@ -254,6 +274,7 @@ class ProgressorHandler: ObservableObject {
 
     /// Common reset logic shared between reset() and recalibrate()
     private func resetCommonState() {
+        preparationFeedback.reset()
         stopOffTargetTimer()
         state = .waitingForSamples
         calibrationTimeRemaining = AppConstants.calibrationDuration

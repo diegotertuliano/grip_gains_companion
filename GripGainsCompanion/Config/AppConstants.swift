@@ -46,6 +46,7 @@ struct AppConstants {
 
     // MARK: - UI Defaults
     static let defaultEnableHaptics: Bool = true
+    static let defaultEnablePreparationTargetSound: Bool = false
     static let defaultEnableTargetSound: Bool = true
     static let defaultEnableTimerCountdownSound: Bool = true
     static let defaultEnableWebsiteSounds: Bool = true

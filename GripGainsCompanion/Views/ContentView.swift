@@ -159,6 +159,7 @@ struct ContentView: View {
     @State private var countdownSound = CountdownSound(playSecond: SoundManager.playCountdownTone)
     @AppStorage("useLbs") private var useLbs = false
     @AppStorage("enableHaptics") private var enableHaptics = AppConstants.defaultEnableHaptics
+    @AppStorage("enablePreparationTargetSound") private var enablePreparationTargetSound = AppConstants.defaultEnablePreparationTargetSound
     @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
     @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
     @AppStorage("enableWebsiteSounds") private var enableWebsiteSounds = AppConstants.defaultEnableWebsiteSounds
@@ -258,11 +259,18 @@ struct ContentView: View {
             UIApplication.shared.isIdleTimerDisabled = true
             setupSubscriptions()
         }
+        .onChange(of: enablePreparationTargetSound) { _, _ in updatePreparationFeedback() }
+        .onChange(of: enableTargetSound) { _, _ in updatePreparationFeedback() }
+        .onDisappear {
+            progressorHandler.preparationFeedbackEnabled = false
+            SoundManager.stopPreparationTone()
+        }
         .onChange(of: enableWebsiteSounds) { _, enabled in
             webCoordinator.setWebsiteAudioMuted(!enabled)
         }
         .onChange(of: bluetoothManager.connectionState) { _, newState in
             isConnected = (newState == .connected)
+            updatePreparationFeedback()
 
             if newState == .connected {
                 progressorHandler.prepareForReconnect()
@@ -289,6 +297,7 @@ struct ContentView: View {
         }
         .onChange(of: isFailButtonEnabled) { _, newValue in
             progressorHandler.canEngage = newValue
+            updatePreparationFeedback()
             // Scrape weight options when fail button becomes enabled (page is ready)
             if newValue && autoSelectWeight && availableWeights.isEmpty {
                 webCoordinator.scrapeWeightOptions()
@@ -704,6 +713,18 @@ struct ContentView: View {
         progressorHandler.targetWeight = effectiveTargetWeight
     }
 
+    private func updatePreparationFeedback() {
+        // Web callbacks outlive the SwiftUI value that installed them. Read current
+        // model state and preferences rather than that value's AppStorage snapshot.
+        let defaults = UserDefaults.standard
+        let soundsEnabled = defaults.object(forKey: "enableTargetSound") as? Bool ?? AppConstants.defaultEnableTargetSound
+        let preparationEnabled = defaults.object(forKey: "enablePreparationTargetSound") as? Bool ?? AppConstants.defaultEnablePreparationTargetSound
+        let enabled = webCoordinator.isPreparationPhase && !progressorHandler.canEngage &&
+            bluetoothManager.connectionState == .connected && soundsEnabled && preparationEnabled
+        progressorHandler.preparationFeedbackEnabled = enabled
+        if !enabled { SoundManager.stopPreparationTone() }
+    }
+
     /// Feed the timer countdown into the beep state machine, but only during a
     /// rest/pre-start countdown (fail button disabled). Passing `nil` resets it so
     /// the next countdown cycle starts fresh.
@@ -773,8 +794,16 @@ struct ContentView: View {
         webCoordinator.setWebsiteAudioMuted(!enableWebsiteSounds)
 
         // WebView button state
+        var lastReportedButtonState = isFailButtonEnabled
         webCoordinator.onButtonStateChanged = { enabled in
+            // Preserve the post-failure engagement lock when backup polling repeats
+            // the same button state; only a phase transition may unlock it.
+            if enabled != lastReportedButtonState {
+                progressorHandler.canEngage = enabled
+                lastReportedButtonState = enabled
+            }
             isFailButtonEnabled = enabled
+            updatePreparationFeedback()
             updateCountdownSound()
         }
 
@@ -798,6 +827,11 @@ struct ContentView: View {
             scrapedRemainingTime = remaining
             updateCountdownSound()
         }
+
+        webCoordinator.onPreparationStateChanged = { _ in
+            updatePreparationFeedback()
+        }
+        updatePreparationFeedback()
 
         // WebView weight options scraping
         webCoordinator.onWeightOptionsChanged = { weights, isLbs in
@@ -893,6 +927,15 @@ struct ContentView: View {
                 if UserDefaults.standard.object(forKey: "showSetReview") as? Bool ?? false {
                     showSetReview = true
                 }
+            }
+            .store(in: &cancellables)
+
+        progressorHandler.preparationOffTarget
+            .sink { difference in
+                guard progressorHandler.preparationFeedbackEnabled,
+                      UserDefaults.standard.bool(forKey: "enablePreparationTargetSound"),
+                      UserDefaults.standard.object(forKey: "enableTargetSound") as? Bool ?? true else { return }
+                SoundManager.playPreparationTone(difference: difference)
             }
             .store(in: &cancellables)
 

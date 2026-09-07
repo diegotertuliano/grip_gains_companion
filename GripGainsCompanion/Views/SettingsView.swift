@@ -86,6 +86,7 @@ struct SettingsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @AppStorage("enableHaptics") private var enableHaptics = AppConstants.defaultEnableHaptics
+    @AppStorage("enablePreparationTargetSound") private var enablePreparationTargetSound = AppConstants.defaultEnablePreparationTargetSound
     @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
     @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
     @AppStorage("enableWebsiteSounds") private var enableWebsiteSounds = AppConstants.defaultEnableWebsiteSounds
@@ -505,6 +506,9 @@ struct SettingsView: View {
                 Section("Feedback") {
                     Toggle("Haptic Feedback", isOn: $enableHaptics)
                     Toggle("Target Weight Sounds", isOn: $enableTargetSound)
+                    Toggle("During Countdown & Rest", isOn: $enablePreparationTargetSound)
+                        .padding(.leading)
+                        .disabled(!enableTargetSound)
                     Toggle("Timer Countdown Sound", isOn: $enableTimerCountdownSound)
                     Toggle("Grip Gains Sounds", isOn: $enableWebsiteSounds)
                     Toggle("Grip Statistics", isOn: $showGripStats)
@@ -698,6 +702,7 @@ struct SettingsView: View {
     private func resetToDefaults() {
         // Feedback
         enableHaptics = AppConstants.defaultEnableHaptics
+        enablePreparationTargetSound = AppConstants.defaultEnablePreparationTargetSound
         enableTargetSound = AppConstants.defaultEnableTargetSound
         showGripStats = AppConstants.defaultShowGripStats
         showSetReview = AppConstants.defaultShowSetReview

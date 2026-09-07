@@ -32,6 +32,7 @@
 		7B568597E44C895292E9C4E8 /* ShareableSetSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4599C9DEBDE2BFEFDB0C3755 /* ShareableSetSummaryView.swift */; };
 		7E02DCD62EF23D4000C60B3B /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E02DCD52EF23D4000C60B3B /* SoundManager.swift */; };
 		7ECD00012EF23D4000C60B3C /* CountdownSound.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ECD00022EF23D4000C60B3C /* CountdownSound.swift */; };
+		7ECA00012EF23D4000C60B3C /* PreparationFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ECA00022EF23D4000C60B3C /* PreparationFeedback.swift */; };
 		7E5D1A142EF966DA001C3436 /* MockCentralManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5D1A122EF966DA001C3436 /* MockCentralManager.swift */; };
 		7E5D1A152EF966DA001C3436 /* BluetoothManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5D1A112EF966DA001C3436 /* BluetoothManagerTests.swift */; };
 		7E69085E2EF5188500206778 /* GripTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085D2EF5188500206778 /* GripTimerAttributes.swift */; };
@@ -64,6 +65,7 @@
 		T001 /* WeightFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T101 /* WeightFormatterTests.swift */; };
 		T002 /* ProgressorHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T102 /* ProgressorHandlerTests.swift */; };
 		T007 /* CountdownSoundTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T107 /* CountdownSoundTests.swift */; };
+		TP01 /* PreparationFeedbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP02 /* PreparationFeedbackTests.swift */; };
 		T003 /* WebViewCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T103 /* WebViewCoordinatorTests.swift */; };
 		T004 /* StatisticsUtilitiesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T104 /* StatisticsUtilitiesTests.swift */; };
 		T005 /* RepResultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T105 /* RepResultTests.swift */; };
@@ -132,6 +134,7 @@
 		614D9441976105B809189772 /* ShareableRepView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareableRepView.swift; sourceTree = "<group>"; };
 		7E02DCD52EF23D4000C60B3B /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
 		7ECD00022EF23D4000C60B3C /* CountdownSound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownSound.swift; sourceTree = "<group>"; };
+		7ECA00022EF23D4000C60B3C /* PreparationFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreparationFeedback.swift; sourceTree = "<group>"; };
 		7E5D1A112EF966DA001C3436 /* BluetoothManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothManagerTests.swift; sourceTree = "<group>"; };
 		7E5D1A122EF966DA001C3436 /* MockCentralManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockCentralManager.swift; sourceTree = "<group>"; };
 		7E6095DE2F2EEF1E003594D8 /* GripGainsCompanion.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GripGainsCompanion.entitlements; sourceTree = "<group>"; };
@@ -162,6 +165,7 @@
 		T101 /* WeightFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightFormatterTests.swift; sourceTree = "<group>"; };
 		T102 /* ProgressorHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressorHandlerTests.swift; sourceTree = "<group>"; };
 		T107 /* CountdownSoundTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownSoundTests.swift; sourceTree = "<group>"; };
+		TP02 /* PreparationFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreparationFeedbackTests.swift; sourceTree = "<group>"; };
 		T103 /* WebViewCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewCoordinatorTests.swift; sourceTree = "<group>"; };
 		T104 /* StatisticsUtilitiesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsUtilitiesTests.swift; sourceTree = "<group>"; };
 		T105 /* RepResultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepResultTests.swift; sourceTree = "<group>"; };
@@ -347,6 +351,7 @@
 			children = (
 				7E02DCD52EF23D4000C60B3B /* SoundManager.swift */,
 				7ECD00022EF23D4000C60B3C /* CountdownSound.swift */,
+				7ECA00022EF23D4000C60B3C /* PreparationFeedback.swift */,
 				7EC12C8D2EF1195800A9D66C /* HapticManager.swift */,
 				7EC12C8E2EF1195800A9D66C /* Log.swift */,
 				7EC12C8F2EF1195800A9D66C /* WeightFormatter.swift */,
@@ -385,6 +390,7 @@
 				T101 /* WeightFormatterTests.swift */,
 				T102 /* ProgressorHandlerTests.swift */,
 				T107 /* CountdownSoundTests.swift */,
+				TP02 /* PreparationFeedbackTests.swift */,
 				T103 /* WebViewCoordinatorTests.swift */,
 				T104 /* StatisticsUtilitiesTests.swift */,
 				T105 /* RepResultTests.swift */,
@@ -550,6 +556,7 @@
 				015 /* SettingsView.swift in Sources */,
 				7E02DCD62EF23D4000C60B3B /* SoundManager.swift in Sources */,
 				7ECD00012EF23D4000C60B3C /* CountdownSound.swift in Sources */,
+				7ECA00012EF23D4000C60B3C /* PreparationFeedback.swift in Sources */,
 				E2B3C4D5E6F7A8B9C0D1E3F4 /* TimestampedSample.swift in Sources */,
 				A63A82AD2615FA3C87210A18 /* RepResult.swift in Sources */,
 				D8740AA31856AAE788289A7A /* SetStatistics.swift in Sources */,
@@ -589,6 +596,7 @@
 				T001 /* WeightFormatterTests.swift in Sources */,
 				T002 /* ProgressorHandlerTests.swift in Sources */,
 				T007 /* CountdownSoundTests.swift in Sources */,
+				TP01 /* PreparationFeedbackTests.swift in Sources */,
 				T003 /* WebViewCoordinatorTests.swift in Sources */,
 				T004 /* StatisticsUtilitiesTests.swift in Sources */,
 				T005 /* RepResultTests.swift in Sources */,

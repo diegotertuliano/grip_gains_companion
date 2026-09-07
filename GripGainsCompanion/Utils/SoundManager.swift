@@ -5,6 +5,22 @@ import AudioToolbox
 enum SoundManager {
     private static var toneGenerator: ToneGenerator?
     private static var audioSessionConfigured = false
+    private static var preparationGenerator: ToneGenerator?
+    private static var preparationMutedUntil: TimeInterval = 0
+
+    static func stopPreparationTone() {
+        preparationGenerator?.stop()
+        preparationGenerator = nil
+    }
+
+    static func playPreparationTone(difference: Double) {
+        guard ProcessInfo.processInfo.systemUptime >= preparationMutedUntil else { return }
+        configureAudioSession()
+        stopPreparationTone()
+        let generator = ToneGenerator()
+        generator.play(frequency: difference > 0 ? 1320 : 440, duration: 0.15)
+        preparationGenerator = generator
+    }
 
     private static func configureAudioSession() {
         guard !audioSessionConfigured else { return }
@@ -35,6 +51,8 @@ enum SoundManager {
 
     /// Play a timer countdown tone with distinct cues near the end
     static func playCountdownTone(second: Int) {
+        stopPreparationTone()
+        preparationMutedUntil = ProcessInfo.processInfo.systemUptime + 0.4
         switch second {
         case 0:  playTone(frequency: 1320,    duration: 0.30) // E6
         case 1:  playTone(frequency: 1174.66, duration: 0.24) // D6
@@ -59,6 +77,13 @@ enum SoundManager {
 private class ToneGenerator {
     private var audioEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
+
+    func stop() {
+        playerNode?.stop()
+        audioEngine?.stop()
+        playerNode = nil
+        audioEngine = nil
+    }
 
     func play(frequency: Double, duration: Double) {
         let engine = AVAudioEngine()

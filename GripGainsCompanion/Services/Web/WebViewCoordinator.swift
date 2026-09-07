@@ -17,6 +17,13 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
 
     /// Callback when remaining time changes (scraped from timer display, in seconds, negative = overtime)
     var onRemainingTimeChanged: ((Int?) -> Void)?
+    var onPreparationStateChanged: ((Bool) -> Void)?
+    private(set) var isPreparationPhase = false
+
+    func updatePreparationState(_ preparing: Bool) {
+        isPreparationPhase = preparing
+        onPreparationStateChanged?(preparing)
+    }
 
     /// Callback when available weight options are scraped (weights in display unit, isLbs indicates unit)
     var onWeightOptionsChanged: (([Double], Bool) -> Void)?
@@ -42,6 +49,14 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
     }
 
     // MARK: - WKNavigationDelegate
+
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        updatePreparationState(false)
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        updatePreparationState(false)
+    }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         Task { @MainActor in
@@ -84,6 +99,11 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
                 } else {
                     self?.onTargetDurationChanged?(nil)
                 }
+            }
+
+        case "preparationState":
+            DispatchQueue.main.async { [weak self] in
+                self?.updatePreparationState(message.body as? Bool ?? false)
             }
 
         case "remainingTime":
