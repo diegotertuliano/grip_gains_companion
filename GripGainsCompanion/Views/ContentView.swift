@@ -175,6 +175,7 @@ struct ContentView: View {
     @AppStorage("useManualTarget") private var useManualTarget = AppConstants.defaultUseManualTarget
     @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = AppConstants.defaultManualTargetWeight
     @AppStorage("showGripStats") private var showGripStats = AppConstants.defaultShowGripStats
+    @AppStorage("prominentGripStats") private var prominentGripStats = AppConstants.defaultProminentGripStats
     @AppStorage("weightTolerance") private var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
     @AppStorage("enableCalibration") private var enableCalibration = AppConstants.defaultEnableCalibration
     @AppStorage("engageThreshold") private var engageThreshold: Double = Double(AppConstants.defaultEngageThreshold)
@@ -701,6 +702,7 @@ struct ContentView: View {
             useLbs: useLbs,
             theme: theme,
             expanded: expandedForceBar,
+            prominentStats: prominentGripStats,
             deviceShortName: bluetoothManager.selectedDeviceType.shortName,
             reconnecting: bluetoothManager.isReconnecting,
             onUnitToggle: { useLbs.toggle() },

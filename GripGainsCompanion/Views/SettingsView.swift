@@ -91,6 +91,7 @@ struct SettingsView: View {
     @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
     @AppStorage("enableWebsiteSounds") private var enableWebsiteSounds = AppConstants.defaultEnableWebsiteSounds
     @AppStorage("showGripStats") private var showGripStats = AppConstants.defaultShowGripStats
+    @AppStorage("prominentGripStats") private var prominentGripStats = AppConstants.defaultProminentGripStats
     @AppStorage("showSetReview") private var showSetReview = AppConstants.defaultShowSetReview
     @AppStorage("showStatusBar") private var showStatusBar = AppConstants.defaultShowStatusBar
     @AppStorage("expandedForceBar") private var expandedForceBar = AppConstants.defaultExpandedForceBar
@@ -512,6 +513,9 @@ struct SettingsView: View {
                     Toggle("Timer Countdown Sound", isOn: $enableTimerCountdownSound)
                     Toggle("Grip Gains Sounds", isOn: $enableWebsiteSounds)
                     Toggle("Grip Statistics", isOn: $showGripStats)
+                    Toggle("Prominent Statistics", isOn: $prominentGripStats)
+                        .padding(.leading)
+                        .disabled(!showGripStats)
                     Toggle("End-of-Set Summary", isOn: $showSetReview)
                 }
 
@@ -705,6 +709,7 @@ struct SettingsView: View {
         enablePreparationTargetSound = AppConstants.defaultEnablePreparationTargetSound
         enableTargetSound = AppConstants.defaultEnableTargetSound
         showGripStats = AppConstants.defaultShowGripStats
+        prominentGripStats = AppConstants.defaultProminentGripStats
         showSetReview = AppConstants.defaultShowSetReview
 
         // Display

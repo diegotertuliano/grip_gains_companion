@@ -51,6 +51,7 @@ struct AppConstants {
     static let defaultEnableTimerCountdownSound: Bool = true
     static let defaultEnableWebsiteSounds: Bool = true
     static let defaultShowGripStats: Bool = true
+    static let defaultProminentGripStats: Bool = false
     static let defaultShowSetReview: Bool = false
     static let defaultShowStatusBar: Bool = true
     static let defaultExpandedForceBar: Bool = true

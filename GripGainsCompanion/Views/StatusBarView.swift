@@ -6,6 +6,7 @@ struct StatusBarView: View {
     let useLbs: Bool
     let theme: ForceBarTheme
     let expanded: Bool
+    let prominentStats: Bool
     let deviceShortName: String
     let reconnecting: Bool
     let onUnitToggle: () -> Void
@@ -28,6 +29,7 @@ struct StatusBarView: View {
         useLbs: Bool,
         theme: ForceBarTheme = .system,
         expanded: Bool = false,
+        prominentStats: Bool = false,
         deviceShortName: String = "device",
         reconnecting: Bool = false,
         onUnitToggle: @escaping () -> Void,
@@ -49,6 +51,7 @@ struct StatusBarView: View {
         self.useLbs = useLbs
         self.theme = theme
         self.expanded = expanded
+        self.prominentStats = prominentStats
         self.deviceShortName = deviceShortName
         self.reconnecting = reconnecting
         self.onUnitToggle = onUnitToggle
@@ -65,6 +68,10 @@ struct StatusBarView: View {
 
     private var backgroundColor: Color {
         isDarkMode ? .black : Color(.systemBackground)
+    }
+
+    private var primaryTextColor: Color {
+        isDarkMode ? .white : .primary
     }
 
     private var secondaryTextColor: Color {
@@ -111,15 +118,25 @@ struct StatusBarView: View {
             settingsButton
         }
 
-        // Center: giant force number
-        expandedForceDisplay
+        if prominentStats {
+            // Center 3 rows: current weight (biggest), mean/stddev, then target
+            VStack(spacing: 6) {
+                expandedForceDisplay
+                statisticsDisplay
+                targetWeightDisplay
+            }
             .frame(maxWidth: .infinity)
+        } else {
+            // Center: giant force number
+            expandedForceDisplay
+                .frame(maxWidth: .infinity)
 
-        // Bottom row: stats on left, target on right
-        HStack {
-            statisticsDisplay
-            Spacer()
-            targetWeightDisplay
+            // Bottom row: stats on left, target on right
+            HStack {
+                statisticsDisplay
+                Spacer()
+                targetWeightDisplay
+            }
         }
     }
 
@@ -133,19 +150,19 @@ struct StatusBarView: View {
         }
     }
 
-    /// Target weight only (for expanded layout bottom right)
+    /// Target weight only (for expanded layout bottom right or centered 3rd row)
     @ViewBuilder
     private var targetWeightDisplay: some View {
         if let target = state.targetWeight {
             HStack(spacing: 4) {
                 Text("Target: \(WeightFormatter.format(target, useLbs: useLbs))")
-                    .font(.caption)
+                    .font(prominentStats ? .subheadline : .caption)
                     .foregroundColor(state.isOffTarget ? .red : secondaryTextColor)
 
                 // Show difference when off target
                 if state.isOffTarget, let diff = state.formattedDifference(useLbs: useLbs) {
                     Text("(\(diff))")
-                        .font(.caption)
+                        .font(prominentStats ? .subheadline : .caption)
                         .fontWeight(.medium)
                         .foregroundColor(.red)
                 }
@@ -164,27 +181,28 @@ struct StatusBarView: View {
     @ViewBuilder
     private var statisticsDisplay: some View {
         if let mean = state.sessionMean {
-            HStack(spacing: 6) {
+            HStack(spacing: prominentStats ? 12 : 6) {
                 // Mean display
-                HStack(spacing: 2) {
+                HStack(spacing: prominentStats ? 4 : 2) {
                     Text("x̄")
-                        .font(.caption2)
+                        .font(prominentStats ? .subheadline : .caption2)
                     Text(WeightFormatter.format(mean, useLbs: useLbs))
-                        .font(.caption)
-                        .fontWeight(.medium)
+                        .font(prominentStats ? .title3 : .caption)
+                        .fontWeight(prominentStats ? .semibold : .medium)
                 }
 
                 // Standard deviation display
                 if let stdDev = state.sessionStdDev, stdDev > 0 {
-                    HStack(spacing: 2) {
+                    HStack(spacing: prominentStats ? 4 : 2) {
                         Text("σ")
-                            .font(.caption2)
+                            .font(prominentStats ? .subheadline : .caption2)
                         Text(WeightFormatter.format(stdDev, useLbs: useLbs, includeUnit: false))
-                            .font(.caption)
+                            .font(prominentStats ? .title3 : .caption)
+                            .fontWeight(prominentStats ? .semibold : .regular)
                     }
                 }
             }
-            .foregroundColor(secondaryTextColor)
+            .foregroundColor(prominentStats ? primaryTextColor : secondaryTextColor)
         }
     }
 
@@ -336,6 +354,26 @@ struct StatusBarView: View {
         calibrationTimeRemaining: 3.5,
         weightMedian: nil,
         useLbs: false,
+        onUnitToggle: {},
+        onSettingsTap: {}
+    )
+}
+
+#Preview("Expanded with prominent stats") {
+    StatusBarView(
+        force: 25.3,
+        engaged: true,
+        calibrating: false,
+        waitingForSamples: false,
+        calibrationTimeRemaining: 0,
+        weightMedian: nil,
+        targetWeight: 20.0,
+        isOffTarget: false,
+        sessionMean: 24.8,
+        sessionStdDev: 0.4,
+        useLbs: false,
+        expanded: true,
+        prominentStats: true,
         onUnitToggle: {},
         onSettingsTap: {}
     )
