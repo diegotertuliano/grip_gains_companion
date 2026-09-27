@@ -402,11 +402,7 @@ struct ContentView: View {
             supportsHardwareTare: bluetoothManager.supportsHardwareTare,
             onHardwareTare: {
                 showSettings = false
-                bluetoothManager.tareDevice {
-                    progressorHandler.recalibrate()
-                    chartDataSource.clear()
-                    webCoordinator.refreshButtonState()
-                }
+                performHardwareTare()
             },
             scrapedTargetWeight: scrapedTargetWeight,
             deviceShortName: bluetoothManager.selectedDeviceType.shortName
@@ -735,6 +731,14 @@ struct ContentView: View {
     /// Update the handler's target weight based on current settings
     private func updateTargetWeight() {
         progressorHandler.targetWeight = effectiveTargetWeight
+    }
+
+    private func performHardwareTare() {
+        bluetoothManager.tareDevice {
+            progressorHandler.recalibrate()
+            chartDataSource.clear()
+            webCoordinator.refreshButtonState()
+        }
     }
 
     private func updatePreparationFeedback() {
