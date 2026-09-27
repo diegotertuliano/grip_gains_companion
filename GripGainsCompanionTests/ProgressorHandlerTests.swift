@@ -1858,4 +1858,47 @@ final class ProgressorHandlerTests: XCTestCase {
         XCTAssertFalse(handler.forceHistory.isEmpty,
                        "Processing should work even without a callback")
     }
+
+    // MARK: - Device Timestamp Restart
+
+    /// Tindeq restarts its timestamp counter when streaming resumes after a hardware tare.
+    /// Samples arrive before recalibrate() clears the reference, so the offset used to underflow.
+    func testTimestampCounterRestartDoesNotCrash() {
+        testTimestamp = 500_000
+        setupIdleStateWithZeroBaseline()
+        processTestSample(0)
+        waitForMainQueue()
+
+        testTimestamp = 0
+        processTestSample(0)
+        processTestSample(0)
+        waitForMainQueue()
+
+        let times = handler.forceHistory.map(\.timestamp)
+        XCTAssertEqual(times.count, 3)  // first sample's history is cleared on entering idle
+        XCTAssertEqual(times, times.sorted(), "Display timestamps should stay monotonic after a counter restart")
+        XCTAssertLessThan(times.last!.timeIntervalSinceNow, 1.0,
+                          "Display timestamps should not jump ahead after a counter restart")
+    }
+
+    func testGripDurationPreservedAcrossTimestampRestart() {
+        handler.enablePercentageThresholds = false
+        handler.engageThreshold = 3
+        handler.failThreshold = 1
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = true
+
+        var durations: [TimeInterval] = []
+        handler.gripDisengaged.sink { durations.append($0.0) }.store(in: &cancellables)
+
+        processTestSample(10)
+        for _ in 0..<160 { processTestSample(10) }  // 2s
+        testTimestamp = 0
+        for _ in 0..<80 { processTestSample(10) }   // 1s (first sample re-anchors the grip)
+        processTestSample(0)
+        waitForMainQueue()
+
+        XCTAssertEqual(durations.count, 1)
+        XCTAssertEqual(durations.first ?? 0, 3.0, accuracy: 0.05)
+    }
 }

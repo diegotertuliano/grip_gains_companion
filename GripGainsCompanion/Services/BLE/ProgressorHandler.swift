@@ -216,6 +216,12 @@ class ProgressorHandler: ObservableObject {
             guard generation == sampleGeneration else { return }
             currentForce = rawWeight
 
+            // Device timestamp went backwards: its counter restarted (e.g. streaming resumed
+            // after a hardware tare) or wrapped. Rebase like a reconnect so offsets can't underflow.
+            if firstDeviceTimestamp != nil && timestamp < lastTimestamp {
+                prepareForReconnect()
+            }
+
             // Reset grip startTimestamp after reconnect (device resets its timestamp counter)
             if needsStartTimestampReset {
                 needsStartTimestampReset = false
@@ -230,12 +236,12 @@ class ProgressorHandler: ObservableObject {
             let displayTimestamp: Date
             if let firstDevice = firstDeviceTimestamp, let firstDisplay = firstDisplayTimestamp {
                 // Calculate offset from first sample in microseconds, convert to seconds
-                let offsetMicros = timestamp - firstDevice
+                let offsetMicros = timestamp &- firstDevice
                 displayTimestamp = firstDisplay.addingTimeInterval(Double(offsetMicros) / 1_000_000.0)
             } else {
-                // First sample - establish reference point
+                // First sample - establish reference point (never behind already-projected samples)
                 firstDeviceTimestamp = timestamp
-                firstDisplayTimestamp = Date()
+                firstDisplayTimestamp = max(Date(), forceHistory.last?.timestamp ?? .distantPast)
                 displayTimestamp = firstDisplayTimestamp!
             }
 
