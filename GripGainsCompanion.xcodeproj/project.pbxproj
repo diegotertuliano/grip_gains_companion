@@ -80,6 +80,7 @@
 		F2E200000000000000000031 /* FrezDynoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000032 /* FrezDynoService.swift */; };
 		F2E200000000000000000041 /* FrezAccessKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000042 /* FrezAccessKeyView.swift */; };
 		F2E200000000000000000051 /* FrezTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000052 /* FrezTests.swift */; };
+		D17000000000000000000001 /* WebPageLoadingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D17000000000000000000002 /* WebPageLoadingTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -190,6 +191,7 @@
 		F2E200000000000000000032 /* FrezDynoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezDynoService.swift; sourceTree = "<group>"; };
 		F2E200000000000000000042 /* FrezAccessKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezAccessKeyView.swift; sourceTree = "<group>"; };
 		F2E200000000000000000052 /* FrezTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezTests.swift; sourceTree = "<group>"; };
+		D17000000000000000000002 /* WebPageLoadingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPageLoadingTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -422,6 +424,7 @@
 				T107 /* CountdownSoundTests.swift */,
 				TP02 /* PreparationFeedbackTests.swift */,
 				T103 /* WebViewCoordinatorTests.swift */,
+				D17000000000000000000002 /* WebPageLoadingTests.swift */,
 				T104 /* StatisticsUtilitiesTests.swift */,
 				T105 /* RepResultTests.swift */,
 				T106 /* ObserverScriptTests.swift */,
@@ -638,6 +641,7 @@
 				T007 /* CountdownSoundTests.swift in Sources */,
 				TP01 /* PreparationFeedbackTests.swift in Sources */,
 				T003 /* WebViewCoordinatorTests.swift in Sources */,
+				D17000000000000000000001 /* WebPageLoadingTests.swift in Sources */,
 				T004 /* StatisticsUtilitiesTests.swift in Sources */,
 				T005 /* RepResultTests.swift in Sources */,
 				7E5D1A142EF966DA001C3436 /* MockCentralManager.swift in Sources */,

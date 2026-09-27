@@ -4,12 +4,17 @@ import WebKit
 /// SwiftUI wrapper for WKWebView that displays the gripgains.ca timer page
 struct TimerWebView: UIViewRepresentable {
     let coordinator: WebViewCoordinator
+    var url = AppConstants.gripGainsURL
+    var websiteDataStore = WKWebsiteDataStore.default()
+    /// How long after load the timer page may lack its workout view before one recovery reload.
+    var missingWorkoutDelay: TimeInterval = 3
+    @Environment(\.scenePhase) private var scenePhase
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
 
         // Enable default caching
-        config.websiteDataStore = WKWebsiteDataStore.default()
+        config.websiteDataStore = websiteDataStore
 
         // Suppress media content loading (not needed for this app)
         config.mediaTypesRequiringUserActionForPlayback = .all
@@ -30,6 +35,7 @@ struct TimerWebView: UIViewRepresentable {
         contentController.add(coordinator, name: "sessionInfo")
         contentController.add(coordinator, name: "settingsVisible")
         contentController.add(coordinator, name: "saveButtonAppeared")
+        contentController.add(coordinator, name: "workoutMissing")
 
         // Inject background time offset script at document start (must run before page scripts)
         let backgroundTimeScript = WKUserScript(
@@ -38,6 +44,12 @@ struct TimerWebView: UIViewRepresentable {
             forMainFrameOnly: false
         )
         contentController.addUserScript(backgroundTimeScript)
+
+        contentController.addUserScript(WKUserScript(
+            source: JavaScriptBridge.missingWorkoutCheckScript(delayMilliseconds: Int(missingWorkoutDelay * 1000)),
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
 
         // Inject script to close weight picker if it's open on page load
         let closePickerScript = WKUserScript(
@@ -90,17 +102,17 @@ struct TimerWebView: UIViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = coordinator
         coordinator.setWebView(webView)
+        coordinator.setPageBackgrounded(scenePhase == .background)
 
-        // Load the gripgains timer page with caching
-        var request = URLRequest(url: AppConstants.gripGainsURL)
-        request.cachePolicy = .returnCacheDataElseLoad
-        webView.load(request)
+        // Load only on creation; SwiftUI updates and app resumes must preserve the live workout.
+        coordinator.loadInitialPage(url)
 
         return webView
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        // No updates needed
+        // Do not load here: scene changes and BLE updates must not restart the workout.
+        coordinator.setPageBackgrounded(scenePhase == .background)
     }
 
     static func dismantleUIView(_ uiView: WKWebView, coordinator: ()) {
@@ -114,5 +126,6 @@ struct TimerWebView: UIViewRepresentable {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "sessionInfo")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "settingsVisible")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "saveButtonAppeared")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "workoutMissing")
     }
 }
