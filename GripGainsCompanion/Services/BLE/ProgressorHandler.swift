@@ -58,6 +58,7 @@ class ProgressorHandler: ObservableObject {
 
     // Last device timestamp received (microseconds) - used for elapsed time calculation
     private var lastTimestamp: UInt32 = 0
+    private var sampleGeneration: UInt64 = 0
 
     // Reference point for converting device timestamps to display timestamps
     private var firstDeviceTimestamp: UInt32?
@@ -208,7 +209,11 @@ class ProgressorHandler: ObservableObject {
     ///   - rawWeight: Force value from device
     ///   - timestamp: Device timestamp in microseconds
     func processSample(_ rawWeight: Double, timestamp: UInt32) {
+        let generation = sampleGeneration
         DispatchQueue.main.async { [self] in
+            // A reset (including a reading correction change) invalidates samples
+            // queued using the previous scale/baseline.
+            guard generation == sampleGeneration else { return }
             currentForce = rawWeight
 
             // Reset grip startTimestamp after reconnect (device resets its timestamp counter)
@@ -274,6 +279,7 @@ class ProgressorHandler: ObservableObject {
 
     /// Common reset logic shared between reset() and recalibrate()
     private func resetCommonState() {
+        sampleGeneration &+= 1
         preparationFeedback.reset()
         stopOffTargetTimer()
         state = .waitingForSamples

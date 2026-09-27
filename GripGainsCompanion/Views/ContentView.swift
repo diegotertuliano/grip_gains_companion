@@ -378,6 +378,9 @@ struct ContentView: View {
 
     private var settingsSheet: some View {
         SettingsView(
+            bluetoothManager: bluetoothManager,
+            canChangeReadingCorrection: canChangeReadingCorrection,
+            onSaveReadingCorrection: saveReadingCorrection,
             deviceName: bluetoothManager.connectedDeviceName,
             isDeviceConnected: isConnected,
             useLbs: $useLbs,
@@ -408,6 +411,25 @@ struct ContentView: View {
             scrapedTargetWeight: scrapedTargetWeight,
             deviceShortName: bluetoothManager.selectedDeviceType.shortName
         )
+    }
+
+    private var canChangeReadingCorrection: Bool {
+        !isFailButtonEnabled && !progressorHandler.engaged &&
+        (repTracker.currentSetReps.isEmpty || repTracker.setStatistics != nil)
+    }
+
+    private func saveReadingCorrection(_ correction: ReadingCorrection, for device: ReadingCorrectionDevice) -> Bool {
+        guard canChangeReadingCorrection,
+              bluetoothManager.saveReadingCorrection(correction, for: device) else { return false }
+        progressorHandler.reset()
+        chartDataSource.clear()
+        repTracker.resetForNewSet()
+        statsHideTimer?.invalidate()
+        displayedMean = nil
+        displayedStdDev = nil
+        suggestedWeightKg = nil
+        webCoordinator.refreshButtonState()
+        return true
     }
 
     private var mainView: some View {

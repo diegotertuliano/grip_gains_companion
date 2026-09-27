@@ -45,6 +45,14 @@ class BluetoothManager: NSObject, ObservableObject {
     @Published var connectedDeviceName: String?
     @Published var connectedDeviceType: DeviceType?
     @Published var isReconnecting: Bool = false
+    @Published private(set) var readingCorrectionDevice: ReadingCorrectionDevice?
+    @Published private(set) var readingCorrection: ReadingCorrection = .identity
+
+    // A separate publisher lets the editor preview raw readings without refreshing
+    // every view observing BluetoothManager at the device's sample rate.
+    let reportedForceSamples = PassthroughSubject<Double, Never>()
+    private(set) var latestReportedForce: Double?
+    private let correctionStore: ReadingCorrectionStore
 
     /// Currently selected device type filter for scanning (persisted)
     @Published var selectedDeviceType: DeviceType = .tindeqProgressor {
@@ -81,6 +89,7 @@ class BluetoothManager: NSObject, ObservableObject {
     var onForceSample: ((Double, UInt32) -> Void)?
 
     override init() {
+        correctionStore = ReadingCorrectionStore()
         super.init()
         // Restore persisted device type
         if let savedType = UserDefaults.standard.string(forKey: "selectedDeviceType"),
@@ -92,7 +101,8 @@ class BluetoothManager: NSObject, ObservableObject {
     }
 
     /// Test initializer for dependency injection
-    init(centralManager: CentralManagerProtocol) {
+    init(centralManager: CentralManagerProtocol, correctionStore: ReadingCorrectionStore = ReadingCorrectionStore()) {
+        self.correctionStore = correctionStore
         super.init()
         // Restore persisted device type
         if let savedType = UserDefaults.standard.string(forKey: "selectedDeviceType"),
@@ -123,6 +133,38 @@ class BluetoothManager: NSObject, ObservableObject {
     }
 
     // MARK: - Public Methods
+
+    /// Load before starting any service, including advertisement-only devices.
+    func prepareReadingCorrection(for device: ReadingCorrectionDevice) {
+        readingCorrectionDevice = device
+        readingCorrection = correctionStore.correction(for: device)
+        latestReportedForce = nil
+    }
+
+    @discardableResult
+    func saveReadingCorrection(_ correction: ReadingCorrection, for device: ReadingCorrectionDevice) -> Bool {
+        guard connectionState == .connected, readingCorrectionDevice == device,
+              correctionStore.save(correction, for: device) else { return false }
+        readingCorrection = correction
+        return true
+    }
+
+    /// The single ingress for all decoded device samples. Source identity prevents
+    /// a late callback from another device from using the current device's profile.
+    func receiveForceSample(_ force: Double, timestamp: UInt32, from device: ReadingCorrectionDevice) {
+        guard connectionState == .connected, readingCorrectionDevice == device,
+              force.isFinite else { return }
+        latestReportedForce = force
+        reportedForceSamples.send(force)
+        guard let corrected = readingCorrection.apply(to: force) else { return }
+        onForceSample?(corrected, timestamp)
+    }
+
+    private func clearReadingCorrection() {
+        readingCorrectionDevice = nil
+        readingCorrection = .identity
+        latestReportedForce = nil
+    }
 
     /// Set the WHC06 scale unit override (forwarded to the active WHC06 service)
     func setWHC06ScaleUnit(_ unit: WHC06ScaleUnit) {
@@ -187,6 +229,8 @@ class BluetoothManager: NSObject, ObservableObject {
         pendingDevice = device
         shouldAutoReconnect = true
         isReconnecting = false
+        let correctionDevice = ReadingCorrectionDevice(peripheralID: device.peripheralIdentifier, type: device.type)
+        prepareReadingCorrection(for: correctionDevice)
         connectionState = .connected
         connectedDeviceName = device.name
         connectedDeviceType = .weihengWHC06
@@ -202,7 +246,7 @@ class BluetoothManager: NSObject, ObservableObject {
             whc06Service?.scaleUnitOverride = unit
         }
         whc06Service?.onForceSample = { [weak self] force, timestamp in
-            self?.onForceSample?(force, timestamp)
+            self?.receiveForceSample(force, timestamp: timestamp, from: correctionDevice)
         }
         whc06Service?.onDisconnect = { [weak self] in
             guard let self = self else { return }
@@ -441,6 +485,7 @@ class BluetoothManager: NSObject, ObservableObject {
         connectedPeripheral = nil
         connectedDeviceName = nil
         connectedDeviceType = nil
+        clearReadingCorrection()
 
         // Clear last connected device to prevent auto-reconnect (unless preserving)
         if !preserveAutoReconnect {
@@ -539,12 +584,13 @@ extension BluetoothManager: CBCentralManagerDelegate {
         resetRetryState()
         isReconnecting = false
 
-        connectionState = .connected
         connectedDeviceName = peripheral.name ?? "Unknown Device"
 
         // Determine device type from pending device or detect from name
         let deviceType = pendingDevice?.type ?? DeviceType.detect(name: peripheral.name, advertisementData: [:]) ?? .tindeqProgressor
         connectedDeviceType = deviceType
+        prepareReadingCorrection(for: ReadingCorrectionDevice(peripheralID: peripheral.identifier, type: deviceType))
+        connectionState = .connected
 
         // Save as last connected device for auto-reconnect
         lastConnectedDeviceId = peripheral.identifier.uuidString
@@ -568,9 +614,10 @@ extension BluetoothManager: CBCentralManagerDelegate {
     }
 
     private func setupProgressorService(peripheral: CBPeripheral) {
+        let device = ReadingCorrectionDevice(peripheralID: peripheral.identifier, type: .tindeqProgressor)
         progressorService = ProgressorService(peripheral: peripheral)
         progressorService?.onForceSample = { [weak self] force, timestamp in
-            self?.onForceSample?(force, timestamp)
+            self?.receiveForceSample(force, timestamp: timestamp, from: device)
         }
         progressorService?.onDiscoveryTimeout = { [weak self] in
             guard let self = self else { return }
@@ -583,9 +630,10 @@ extension BluetoothManager: CBCentralManagerDelegate {
     }
 
     private func setupPitchSixService(peripheral: CBPeripheral) {
+        let device = ReadingCorrectionDevice(peripheralID: peripheral.identifier, type: .pitchSixForceBoard)
         pitchSixService = PitchSixService(peripheral: peripheral)
         pitchSixService?.onForceSample = { [weak self] force, timestamp in
-            self?.onForceSample?(force, timestamp)
+            self?.receiveForceSample(force, timestamp: timestamp, from: device)
         }
         pitchSixService?.onDiscoveryTimeout = { [weak self] in
             guard let self = self else { return }
@@ -598,9 +646,10 @@ extension BluetoothManager: CBCentralManagerDelegate {
     }
 
     private func setupCTS500Service(peripheral: CBPeripheral) {
+        let device = ReadingCorrectionDevice(peripheralID: peripheral.identifier, type: .jinlianCTS500)
         cts500Service = CTS500Service(peripheral: peripheral)
         cts500Service?.onForceSample = { [weak self] force, timestamp in
-            self?.onForceSample?(force, timestamp)
+            self?.receiveForceSample(force, timestamp: timestamp, from: device)
         }
         cts500Service?.onDiscoveryTimeout = { [weak self] in
             guard let self = self else { return }

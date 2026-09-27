@@ -68,6 +68,9 @@ enum ForceBarTheme: String, CaseIterable {
 // MARK: - Settings View
 
 struct SettingsView: View {
+    @ObservedObject var bluetoothManager: BluetoothManager
+    let canChangeReadingCorrection: Bool
+    let onSaveReadingCorrection: (ReadingCorrection, ReadingCorrectionDevice) -> Bool
     let deviceName: String?
     let isDeviceConnected: Bool
     @Binding var useLbs: Bool
@@ -633,6 +636,17 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                 }
 
+                Section {
+                    NavigationLink("Advanced") {
+                        AdvancedSettingsView(
+                            bluetoothManager: bluetoothManager,
+                            useLbs: useLbs,
+                            canChangeReadingCorrection: canChangeReadingCorrection,
+                            onSaveReadingCorrection: onSaveReadingCorrection
+                        )
+                    }
+                }
+
                 // Reset section
                 Section {
                     Button(role: .destructive) {
@@ -651,10 +665,10 @@ struct SettingsView: View {
                         }
                         Button("Cancel", role: .cancel) {}
                     } message: {
-                        Text("This will restore all settings to their recommended values.")
+                        Text("This will restore app settings to their recommended values. Device reading corrections are kept.")
                     }
                 } footer: {
-                    Text("Restores all settings to their recommended values.")
+                    Text("Restores app settings to their recommended values. Device reading corrections are kept.")
                 }
         }
         .navigationTitle("Settings")
@@ -838,6 +852,9 @@ struct SettingsView: View {
 
 #Preview("Connected") {
     SettingsView(
+        bluetoothManager: BluetoothManager(),
+        canChangeReadingCorrection: true,
+        onSaveReadingCorrection: { _, _ in false },
         deviceName: "Progressor_123",
         isDeviceConnected: true,
         useLbs: .constant(false),
@@ -853,6 +870,9 @@ struct SettingsView: View {
 
 #Preview("WHC06") {
     SettingsView(
+        bluetoothManager: BluetoothManager(),
+        canChangeReadingCorrection: true,
+        onSaveReadingCorrection: { _, _ in false },
         deviceName: "WH-C06_1234",
         isDeviceConnected: true,
         useLbs: .constant(false),
@@ -869,6 +889,9 @@ struct SettingsView: View {
 
 #Preview("No Device") {
     SettingsView(
+        bluetoothManager: BluetoothManager(),
+        canChangeReadingCorrection: true,
+        onSaveReadingCorrection: { _, _ in false },
         deviceName: nil,
         isDeviceConnected: false,
         useLbs: .constant(false),
