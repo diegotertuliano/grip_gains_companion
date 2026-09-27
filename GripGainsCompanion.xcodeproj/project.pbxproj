@@ -74,6 +74,12 @@
 		C01100000000000000000003 /* ReadingCorrectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01100000000000000000004 /* ReadingCorrectionStore.swift */; };
 		C01100000000000000000005 /* AdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01100000000000000000006 /* AdvancedSettingsView.swift */; };
 		C01100000000000000000007 /* ReadingCorrectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01100000000000000000008 /* ReadingCorrectionTests.swift */; };
+		F2E200000000000000000001 /* FrezAccessKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000002 /* FrezAccessKeyStore.swift */; };
+		F2E200000000000000000011 /* FrezCoefficientClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000012 /* FrezCoefficientClient.swift */; };
+		F2E200000000000000000021 /* FrezMeasurement.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000022 /* FrezMeasurement.swift */; };
+		F2E200000000000000000031 /* FrezDynoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000032 /* FrezDynoService.swift */; };
+		F2E200000000000000000041 /* FrezAccessKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000042 /* FrezAccessKeyView.swift */; };
+		F2E200000000000000000051 /* FrezTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000052 /* FrezTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -178,6 +184,12 @@
 		C01100000000000000000004 /* ReadingCorrectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingCorrectionStore.swift; sourceTree = "<group>"; };
 		C01100000000000000000006 /* AdvancedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettingsView.swift; sourceTree = "<group>"; };
 		C01100000000000000000008 /* ReadingCorrectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingCorrectionTests.swift; sourceTree = "<group>"; };
+		F2E200000000000000000002 /* FrezAccessKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezAccessKeyStore.swift; sourceTree = "<group>"; };
+		F2E200000000000000000012 /* FrezCoefficientClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezCoefficientClient.swift; sourceTree = "<group>"; };
+		F2E200000000000000000022 /* FrezMeasurement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezMeasurement.swift; sourceTree = "<group>"; };
+		F2E200000000000000000032 /* FrezDynoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezDynoService.swift; sourceTree = "<group>"; };
+		F2E200000000000000000042 /* FrezAccessKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezAccessKeyView.swift; sourceTree = "<group>"; };
+		F2E200000000000000000052 /* FrezTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -284,6 +296,8 @@
 		305 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				F2E200000000000000000012 /* FrezCoefficientClient.swift */,
+				F2E200000000000000000002 /* FrezAccessKeyStore.swift */,
 				C01100000000000000000004 /* ReadingCorrectionStore.swift */,
 				7E69085F2EF5189300206778 /* ActivityManager.swift */,
 				307 /* BLE */,
@@ -299,6 +313,7 @@
 		306 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				F2E200000000000000000042 /* FrezAccessKeyView.swift */,
 				C01100000000000000000006 /* AdvancedSettingsView.swift */,
 				7EF8A5DA2EF5ABA5008B9D03 /* FloatingWeightControl.swift */,
 				7E7ABC142EF3831200CC854B /* ForceChartDataSource.swift */,
@@ -319,6 +334,8 @@
 		307 /* BLE */ = {
 			isa = PBXGroup;
 			children = (
+				F2E200000000000000000032 /* FrezDynoService.swift */,
+				F2E200000000000000000022 /* FrezMeasurement.swift */,
 				107 /* BluetoothManager.swift */,
 				108 /* ProgressorService.swift */,
 				109 /* ProgressorHandler.swift */,
@@ -395,6 +412,7 @@
 		T300 /* GripGainsCompanionTests */ = {
 			isa = PBXGroup;
 			children = (
+				F2E200000000000000000052 /* FrezTests.swift */,
 				C01100000000000000000008 /* ReadingCorrectionTests.swift */,
 				7E5D1A112EF966DA001C3436 /* BluetoothManagerTests.swift */,
 				C7A500000000000000000004 /* CTS500ServiceTests.swift */,
@@ -544,6 +562,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F2E200000000000000000041 /* FrezAccessKeyView.swift in Sources */,
+				F2E200000000000000000031 /* FrezDynoService.swift in Sources */,
+				F2E200000000000000000021 /* FrezMeasurement.swift in Sources */,
+				F2E200000000000000000011 /* FrezCoefficientClient.swift in Sources */,
+				F2E200000000000000000001 /* FrezAccessKeyStore.swift in Sources */,
 				C01100000000000000000005 /* AdvancedSettingsView.swift in Sources */,
 				C01100000000000000000003 /* ReadingCorrectionStore.swift in Sources */,
 				C01100000000000000000001 /* ReadingCorrection.swift in Sources */,
@@ -608,6 +631,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F2E200000000000000000051 /* FrezTests.swift in Sources */,
 				C01100000000000000000007 /* ReadingCorrectionTests.swift in Sources */,
 				T001 /* WeightFormatterTests.swift in Sources */,
 				T002 /* ProgressorHandlerTests.swift in Sources */,
@@ -777,8 +801,8 @@
 				INFOPLIST_FILE = GripGainsCompanion/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Grip Gains Unofficial Companion";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Grip Gains Companion connects to your Tindeq Progressor to measure grip force during training sessions.";
-				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Grip Gains Companion needs Bluetooth to communicate with your Tindeq Progressor device.";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Grip Gains Companion connects to supported Bluetooth scales and dynamometers to measure grip force during training sessions.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Grip Gains Companion needs Bluetooth to communicate with your force measurement device.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -811,8 +835,8 @@
 				INFOPLIST_FILE = GripGainsCompanion/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Grip Gains Unofficial Companion";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Grip Gains Companion connects to your Tindeq Progressor to measure grip force during training sessions.";
-				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Grip Gains Companion needs Bluetooth to communicate with your Tindeq Progressor device.";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Grip Gains Companion connects to supported Bluetooth scales and dynamometers to measure grip force during training sessions.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Grip Gains Companion needs Bluetooth to communicate with your force measurement device.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

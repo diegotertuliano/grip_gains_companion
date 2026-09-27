@@ -6,10 +6,26 @@ struct DeviceScannerView: View {
     let onSkipDevice: () -> Void
 
     @State private var showDeviceTypePicker = false
+    @State private var showFrezAccessKey = false
 
     var body: some View {
         VStack(spacing: 0) {
             headerSection
+            if bluetoothManager.selectedDeviceType == .frezDyno {
+                VStack(spacing: 8) {
+                    Button(bluetoothManager.hasFrezAccessKey ? "Manage Frez API Key" : "Set Up Frez API Key") {
+                        showFrezAccessKey = true
+                    }
+                    Text("Keep your Dyno unloaded while connecting and zeroing.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if bluetoothManager.connectionState == .connecting {
+                        Button("Cancel Connection") { bluetoothManager.disconnect() }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 12)
+            }
             Divider()
             deviceListSection
             Spacer()
@@ -26,10 +42,14 @@ struct DeviceScannerView: View {
             )
             .presentationDetents([.medium])
         }
+        .sheet(isPresented: $showFrezAccessKey) {
+            FrezAccessKeyView(bluetoothManager: bluetoothManager)
+        }
     }
 
     private var skipButton: some View {
         Button("Continue without device") {
+            bluetoothManager.disconnect(preserveAutoReconnect: true)
             onSkipDevice()
         }
         .font(.footnote)
@@ -66,6 +86,7 @@ struct DeviceScannerView: View {
             .foregroundColor(.blue)
         }
         .padding(.bottom, 8)
+        .disabled(bluetoothManager.connectionState == .connecting)
     }
 
     @ViewBuilder
@@ -108,7 +129,8 @@ struct DeviceScannerView: View {
             } label: {
                 DeviceRowView(device: device)
             }
-            .disabled(bluetoothManager.connectionState == .connecting)
+            .disabled(bluetoothManager.connectionState == .connecting ||
+                      (device.type == .frezDyno && !bluetoothManager.hasFrezAccessKey))
         }
         .listStyle(.plain)
     }
@@ -121,13 +143,15 @@ struct DeviceScannerView: View {
         case .scanning:
             StatusIndicator(text: "Scanning...", showProgress: true)
         case .connecting:
-            StatusIndicator(text: "Connecting...", showProgress: true)
+            StatusIndicator(text: bluetoothManager.selectedDeviceType == .frezDyno
+                            ? bluetoothManager.frezSetupStatus : "Connecting...", showProgress: true)
         case .error(let msg):
             ErrorStatusView(message: msg, deviceType: bluetoothManager.selectedDeviceType) {
                 bluetoothManager.startScanning()
             }
         default:
-            Text("Tap a device to connect")
+            Text(bluetoothManager.selectedDeviceType == .frezDyno && !bluetoothManager.hasFrezAccessKey
+                 ? "Set up your access key to connect" : "Tap a device to connect")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -212,6 +236,7 @@ private struct ErrorStatusView: View {
     }
 
     private var userFriendlyMessage: String {
+        if deviceType == .frezDyno { return message }
         if message.lowercased().contains("off") {
             return "Bluetooth is turned off"
         } else if message.lowercased().contains("unauthorized") {
@@ -223,6 +248,9 @@ private struct ErrorStatusView: View {
     }
 
     private var troubleshootingTip: String {
+        if deviceType == .frezDyno {
+            return "Check your Frez API key, internet connection, and account access before retrying."
+        }
         if message.lowercased().contains("off") {
             return "Enable Bluetooth in Settings to continue"
         } else if message.lowercased().contains("unauthorized") {

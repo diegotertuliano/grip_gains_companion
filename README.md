@@ -27,6 +27,7 @@ An unofficial iOS companion app for [gripgains.ca](https://gripgains.ca/) that a
   - PitchSix
   - Jinlian CTS500
   - WHC06
+  - Frez Dyno (personal Frez access key and internet connection required)
 
 ## Installation
 

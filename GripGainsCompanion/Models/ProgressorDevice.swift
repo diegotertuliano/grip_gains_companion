@@ -9,6 +9,7 @@ enum DeviceType: String, CaseIterable, Codable {
     case pitchSixForceBoard
     case jinlianCTS500
     case weihengWHC06
+    case frezDyno
 
     var displayName: String {
         switch self {
@@ -16,6 +17,7 @@ enum DeviceType: String, CaseIterable, Codable {
         case .pitchSixForceBoard: return "PitchSix Force Board"
         case .jinlianCTS500: return "Jinlian CTS500"
         case .weihengWHC06: return "Weiheng WH-C06"
+        case .frezDyno: return "Frez Dyno"
         }
     }
 
@@ -25,13 +27,14 @@ enum DeviceType: String, CaseIterable, Codable {
         case .pitchSixForceBoard: return "PitchSix"
         case .jinlianCTS500: return "CTS500"
         case .weihengWHC06: return "WH-C06"
+        case .frezDyno: return "Frez Dyno"
         }
     }
 
     /// Whether this device uses GATT connection (vs advertisement-only)
     var usesGATTConnection: Bool {
         switch self {
-        case .tindeqProgressor, .pitchSixForceBoard, .jinlianCTS500: return true
+        case .tindeqProgressor, .pitchSixForceBoard, .jinlianCTS500, .frezDyno: return true
         case .weihengWHC06: return false
         }
     }
@@ -40,6 +43,10 @@ enum DeviceType: String, CaseIterable, Codable {
     static func detect(name: String?, advertisementData: [String: Any]) -> DeviceType? {
         let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
         let names = [name, advertisedName].compactMap { $0 }
+
+        if names.contains(where: { $0.hasPrefix("FrezDyno-") }) {
+            return .frezDyno
+        }
 
         // Tindeq: name starts with "Progressor"
         if names.contains(where: { $0.hasPrefix("Progressor") }) {

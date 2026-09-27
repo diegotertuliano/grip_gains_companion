@@ -273,7 +273,7 @@ struct ContentView: View {
             isConnected = (newState == .connected)
             updatePreparationFeedback()
 
-            if newState == .connected {
+            if newState == .connected && bluetoothManager.connectedDeviceType != .frezDyno {
                 progressorHandler.prepareForReconnect()
             }
             if newState == .connected && enableHaptics {
@@ -884,6 +884,10 @@ struct ContentView: View {
         }
 
         // BLE force samples -> Handler processing
+        bluetoothManager.onForceSessionReset = { [progressorHandler, chartDataSource] in
+            progressorHandler.reset()
+            chartDataSource.clear()
+        }
         bluetoothManager.onForceSample = { force, timestamp in
             progressorHandler.processSample(force, timestamp: timestamp)
         }

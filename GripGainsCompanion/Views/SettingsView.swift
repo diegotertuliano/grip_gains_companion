@@ -147,6 +147,7 @@ struct SettingsView: View {
     @State private var showThresholdOptions = false
     @State private var showResetConfirmation = false
     @State private var showHistorySheet = false
+    @State private var showFrezAccessKey = false
     @FocusState private var isTextFieldFocused: Bool
 
     // Decimal options (0.05 increments)
@@ -581,6 +582,10 @@ struct SettingsView: View {
                 }
 
                 // Timer section
+                Section("Frez Dyno") {
+                    Button("Frez API Key") { showFrezAccessKey = true }
+                }
+
                 Section("Experimental") {
                     Toggle("Background Timer Sync", isOn: $backgroundTimeSync)
                     Text("Keeps the timer accurate when the app is in background.")
@@ -700,6 +705,9 @@ struct SettingsView: View {
         } // NavigationStack
         .sheet(isPresented: $showHistorySheet) {
             SessionHistorySheet()
+        }
+        .sheet(isPresented: $showFrezAccessKey) {
+            FrezAccessKeyView(bluetoothManager: bluetoothManager)
         }
     }
 

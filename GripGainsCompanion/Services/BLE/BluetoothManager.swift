@@ -47,6 +47,15 @@ class BluetoothManager: NSObject, ObservableObject {
     @Published var isReconnecting: Bool = false
     @Published private(set) var readingCorrectionDevice: ReadingCorrectionDevice?
     @Published private(set) var readingCorrection: ReadingCorrection = .identity
+    @Published private(set) var hasFrezAccessKey = false
+    @Published private(set) var frezSetupStatus = "Connecting to Dyno… Keep it unloaded."
+    private let frezKeyStore: FrezAccessKeyStoring
+    private var frezService: FrezDynoService?
+    private var isFrezDisconnecting = false
+    private var pendingFrezError: FrezError?
+
+    /// Frez resets its local tare and device clock for every new BLE session.
+    var onForceSessionReset: (() -> Void)?
 
     // A separate publisher lets the editor preview raw readings without refreshing
     // every view observing BluetoothManager at the device's sample rate.
@@ -90,7 +99,9 @@ class BluetoothManager: NSObject, ObservableObject {
 
     override init() {
         correctionStore = ReadingCorrectionStore()
+        frezKeyStore = FrezAccessKeyStore()
         super.init()
+        hasFrezAccessKey = (try? frezKeyStore.read()) != nil
         // Restore persisted device type
         if let savedType = UserDefaults.standard.string(forKey: "selectedDeviceType"),
            let deviceType = DeviceType(rawValue: savedType) {
@@ -101,9 +112,12 @@ class BluetoothManager: NSObject, ObservableObject {
     }
 
     /// Test initializer for dependency injection
-    init(centralManager: CentralManagerProtocol, correctionStore: ReadingCorrectionStore = ReadingCorrectionStore()) {
+    init(centralManager: CentralManagerProtocol, correctionStore: ReadingCorrectionStore = ReadingCorrectionStore(),
+         frezKeyStore: FrezAccessKeyStoring = FrezAccessKeyStore()) {
         self.correctionStore = correctionStore
+        self.frezKeyStore = frezKeyStore
         super.init()
+        hasFrezAccessKey = (try? frezKeyStore.read()) != nil
         // Restore persisted device type
         if let savedType = UserDefaults.standard.string(forKey: "selectedDeviceType"),
            let deviceType = DeviceType(rawValue: savedType) {
@@ -133,6 +147,27 @@ class BluetoothManager: NSObject, ObservableObject {
     }
 
     // MARK: - Public Methods
+
+    var canEditFrezAccessKey: Bool {
+        !isFrezDisconnecting && connectedDeviceType != .frezDyno &&
+        !(connectionState == .connecting && pendingDevice?.type == .frezDyno)
+    }
+
+    func saveFrezAccessKey(_ key: String) throws {
+        guard canEditFrezAccessKey else { throw FrezError.disconnectBeforeEditing }
+        try frezKeyStore.save(FrezCoefficientClient.validatedKey(key))
+        hasFrezAccessKey = true
+    }
+
+    func deleteFrezAccessKey() throws {
+        guard canEditFrezAccessKey else { throw FrezError.disconnectBeforeEditing }
+        try frezKeyStore.delete()
+        hasFrezAccessKey = false
+        if lastConnectedDeviceTypeRaw == DeviceType.frezDyno.rawValue {
+            lastConnectedDeviceId = ""
+            lastConnectedDeviceTypeRaw = ""
+        }
+    }
 
     /// Load before starting any service, including advertisement-only devices.
     func prepareReadingCorrection(for device: ReadingCorrectionDevice) {
@@ -172,6 +207,7 @@ class BluetoothManager: NSObject, ObservableObject {
     }
 
     func startScanning() {
+        guard !isFrezDisconnecting else { return }
         guard centralManager.state == .poweredOn else {
             Log.ble.error("Bluetooth not available")
             connectionState = .error("Bluetooth not available")
@@ -200,6 +236,17 @@ class BluetoothManager: NSObject, ObservableObject {
     }
 
     func connect(to device: ForceDevice) {
+        guard !isFrezDisconnecting, connectionState != .connecting else { return }
+        if device.type == .frezDyno {
+            do {
+                guard let key = try frezKeyStore.read() else { throw FrezError.missingKey }
+                _ = try FrezCoefficientClient.validatedKey(key)
+            } catch {
+                connectionState = .error((error as? FrezError ?? .keychain).localizedDescription)
+                return
+            }
+            frezSetupStatus = "Connecting to Dyno… Keep it unloaded."
+        }
         // For WHC06, we don't actually connect - just track advertisements
         if device.type == .weihengWHC06 {
             connectToWHC06(device)
@@ -461,6 +508,25 @@ class BluetoothManager: NSObject, ObservableObject {
     }
 
     func disconnect(preserveAutoReconnect: Bool = false) {
+        guard !isFrezDisconnecting else { return }
+        if let service = frezService {
+            shouldAutoReconnect = false
+            isReconnecting = false
+            resetRetryState()
+            cancelBackgroundDisconnectTimer()
+            pendingDevice = nil
+            isFrezDisconnecting = true
+            frezSetupStatus = "Disconnecting Dyno…"
+            connectionState = .connecting
+            onForceSessionReset?()
+            service.stop { [weak self, weak service] in
+                guard let self, let service, self.frezService === service else { return }
+                self.frezService = nil
+                self.isFrezDisconnecting = false
+                self.disconnect(preserveAutoReconnect: preserveAutoReconnect)
+            }
+            return
+        }
         Log.ble.info("Disconnecting\(preserveAutoReconnect ? " (preserving auto-reconnect)" : "")...")
 
         // Stop auto-reconnect
@@ -500,7 +566,10 @@ class BluetoothManager: NSObject, ObservableObject {
         connectionState = .disconnected
 
         // Restart scanning to find devices (unless preserving auto-reconnect for later)
-        if !preserveAutoReconnect {
+        if let error = pendingFrezError {
+            pendingFrezError = nil
+            connectionState = .error(error.localizedDescription)
+        } else if !preserveAutoReconnect {
             startScanning()
         }
     }
@@ -511,6 +580,11 @@ class BluetoothManager: NSObject, ObservableObject {
 extension BluetoothManager: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         Log.ble.info("Bluetooth state: \(central.state.rawValue)")
+        if central.state != .poweredOn, frezService != nil {
+            pendingFrezError = .protocolFailure("Bluetooth is unavailable. Enable Bluetooth and reconnect your Frez Dyno.")
+            disconnect()
+            return
+        }
         switch central.state {
         case .poweredOn:
             // Auto-start scanning when Bluetooth becomes ready
@@ -578,6 +652,10 @@ extension BluetoothManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        guard connectedPeripheral?.identifier == peripheral.identifier else {
+            centralManager.cancelPeripheralConnection(peripheral)
+            return
+        }
         Log.ble.info("Connected to \(peripheral.name ?? "Unknown")")
 
         // Reset retry state on successful connection
@@ -590,7 +668,8 @@ extension BluetoothManager: CBCentralManagerDelegate {
         let deviceType = pendingDevice?.type ?? DeviceType.detect(name: peripheral.name, advertisementData: [:]) ?? .tindeqProgressor
         connectedDeviceType = deviceType
         prepareReadingCorrection(for: ReadingCorrectionDevice(peripheralID: peripheral.identifier, type: deviceType))
-        connectionState = .connected
+        // Frez is ready only after authorization, notification setup, and its local tare.
+        connectionState = deviceType == .frezDyno ? .connecting : .connected
 
         // Save as last connected device for auto-reconnect
         lastConnectedDeviceId = peripheral.identifier.uuidString
@@ -606,6 +685,9 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
         case .jinlianCTS500:
             setupCTS500Service(peripheral: peripheral)
+
+        case .frezDyno:
+            setupFrezService(peripheral: peripheral)
 
         case .weihengWHC06:
             // WHC06 doesn't use GATT connection, this shouldn't happen
@@ -661,9 +743,41 @@ extension BluetoothManager: CBCentralManagerDelegate {
         cts500Service?.discoverServices()
     }
 
+    private func setupFrezService(peripheral: CBPeripheral) {
+        do {
+            guard let key = try frezKeyStore.read() else { throw FrezError.missingKey }
+            let device = ReadingCorrectionDevice(peripheralID: peripheral.identifier, type: .frezDyno)
+            let service = FrezDynoService(peripheral: peripheral, accessKey: key)
+            frezService = service
+            service.onStatus = { [weak self, weak service] status in
+                guard let self, self.frezService === service else { return }
+                self.frezSetupStatus = status
+            }
+            service.onReady = { [weak self, weak service] in
+                guard let self, self.frezService === service else { return }
+                self.onForceSessionReset?()
+                self.connectionState = .connected
+            }
+            service.onForceSample = { [weak self, weak service] force, timestamp in
+                guard let self, self.frezService === service else { return }
+                self.receiveForceSample(force, timestamp: timestamp, from: device)
+            }
+            service.onError = { [weak self, weak service] error in
+                guard let self, self.frezService === service else { return }
+                self.pendingFrezError = error
+                self.disconnect()
+            }
+            service.discoverServices()
+        } catch {
+            pendingFrezError = error as? FrezError ?? .keychain
+            disconnect()
+        }
+    }
+
     func centralManager(_ central: CBCentralManager,
                         didFailToConnect peripheral: CBPeripheral,
                         error: Error?) {
+        guard connectedPeripheral?.identifier == peripheral.identifier else { return }
         Log.ble.error("Failed to connect: \(error?.localizedDescription ?? "Unknown error")")
         connectionState = .error(error?.localizedDescription ?? "Connection failed")
         connectedPeripheral = nil
@@ -680,6 +794,21 @@ extension BluetoothManager: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager,
                         didDisconnectPeripheral peripheral: CBPeripheral,
                         error: Error?) {
+        guard connectedPeripheral?.identifier == peripheral.identifier else { return }
+        if isFrezDisconnecting {
+            frezService?.connectionLost()
+            return
+        }
+        let wasFrez = frezService != nil
+        frezService?.invalidate()
+        frezService = nil
+        if wasFrez {
+            onForceSessionReset?()
+            clearReadingCorrection()
+            isReconnecting = false
+            connectedDeviceName = nil
+            connectedDeviceType = nil
+        }
         if let error = error {
             Log.ble.error("Disconnected with error: \(error.localizedDescription)")
         } else {
@@ -692,7 +821,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
         // Set isReconnecting BEFORE connectionState to prevent SwiftUI from
         // briefly switching to scanner view and destroying the web view
-        if shouldAutoReconnect {
+        if shouldAutoReconnect && !wasFrez {
             isReconnecting = true
         }
         connectionState = .disconnected
