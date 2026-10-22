@@ -45,6 +45,8 @@ class BluetoothManager: NSObject, ObservableObject {
     @Published var connectedDeviceName: String?
     @Published var connectedDeviceType: DeviceType?
     @Published var isReconnecting: Bool = false
+    /// Battery percentage reported by the connected device, if it supports reporting one
+    @Published private(set) var deviceBatteryLevel: Int?
     @Published private(set) var readingCorrectionDevice: ReadingCorrectionDevice?
     @Published private(set) var readingCorrection: ReadingCorrection = .identity
     @Published private(set) var hasFrezAccessKey = false
@@ -551,6 +553,7 @@ class BluetoothManager: NSObject, ObservableObject {
         connectedPeripheral = nil
         connectedDeviceName = nil
         connectedDeviceType = nil
+        deviceBatteryLevel = nil
         clearReadingCorrection()
 
         // Clear last connected device to prevent auto-reconnect (unless preserving)
@@ -663,6 +666,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
         isReconnecting = false
 
         connectedDeviceName = peripheral.name ?? "Unknown Device"
+        deviceBatteryLevel = nil
 
         // Determine device type from pending device or detect from name
         let deviceType = pendingDevice?.type ?? DeviceType.detect(name: peripheral.name, advertisementData: [:]) ?? .tindeqProgressor
@@ -697,9 +701,14 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
     private func setupProgressorService(peripheral: CBPeripheral) {
         let device = ReadingCorrectionDevice(peripheralID: peripheral.identifier, type: .tindeqProgressor)
-        progressorService = ProgressorService(peripheral: peripheral)
-        progressorService?.onForceSample = { [weak self] force, timestamp in
+        let service = ProgressorService(peripheral: peripheral)
+        progressorService = service
+        service.onForceSample = { [weak self] force, timestamp in
             self?.receiveForceSample(force, timestamp: timestamp, from: device)
+        }
+        service.onBatteryLevel = { [weak self, weak service] level in
+            guard let self, self.progressorService === service else { return }
+            self.deviceBatteryLevel = level
         }
         progressorService?.onDiscoveryTimeout = { [weak self] in
             guard let self = self else { return }
@@ -758,6 +767,10 @@ extension BluetoothManager: CBCentralManagerDelegate {
                 self.onForceSessionReset?()
                 self.connectionState = .connected
             }
+            service.onBatteryLevel = { [weak self, weak service] level in
+                guard let self, self.frezService === service else { return }
+                self.deviceBatteryLevel = level
+            }
             service.onForceSample = { [weak self, weak service] force, timestamp in
                 guard let self, self.frezService === service else { return }
                 self.receiveForceSample(force, timestamp: timestamp, from: device)
@@ -786,6 +799,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
         cts500Service = nil
         connectedDeviceName = nil
         connectedDeviceType = nil
+        deviceBatteryLevel = nil
 
         // Schedule indefinite retry
         scheduleRetry()
@@ -818,6 +832,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
         progressorService = nil
         pitchSixService = nil
         cts500Service = nil
+        deviceBatteryLevel = nil
 
         // Set isReconnecting BEFORE connectionState to prevent SwiftUI from
         // briefly switching to scanner view and destroying the web view

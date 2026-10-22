@@ -52,6 +52,7 @@ final class FrezDynoService: NSObject, CBPeripheralDelegate {
     var onStatus: ((String) -> Void)?
     var onReady: (() -> Void)?
     var onForceSample: ((Double, UInt32) -> Void)?
+    var onBatteryLevel: ((Int) -> Void)?
     var onError: ((FrezError) -> Void)?
 
     init(peripheral: FrezPeripheral, accessKey: String,
@@ -132,6 +133,7 @@ final class FrezDynoService: NSObject, CBPeripheralDelegate {
             firmwareVersion = String(data: data, encoding: .utf8)?.trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
         case FrezGATT.battery:
             batteryLevel = data.first.flatMap { $0 <= 100 ? $0 : nil }
+            if let batteryLevel { onBatteryLevel?(Int(batteryLevel)) }
         case FrezGATT.notify:
             guard sentStart, measurement != nil else { return }
             do {

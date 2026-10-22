@@ -9,6 +9,7 @@ struct StatusBarView: View {
     let prominentStats: Bool
     let deviceShortName: String
     let reconnecting: Bool
+    let batteryLevel: Int?
     let onUnitToggle: () -> Void
     let onSettingsTap: () -> Void
 
@@ -32,6 +33,7 @@ struct StatusBarView: View {
         prominentStats: Bool = false,
         deviceShortName: String = "device",
         reconnecting: Bool = false,
+        batteryLevel: Int? = nil,
         onUnitToggle: @escaping () -> Void,
         onSettingsTap: @escaping () -> Void
     ) {
@@ -54,6 +56,7 @@ struct StatusBarView: View {
         self.prominentStats = prominentStats
         self.deviceShortName = deviceShortName
         self.reconnecting = reconnecting
+        self.batteryLevel = batteryLevel
         self.onUnitToggle = onUnitToggle
         self.onSettingsTap = onSettingsTap
     }
@@ -102,6 +105,7 @@ struct StatusBarView: View {
             Spacer()
             statisticsDisplay
             weightDisplay
+            batteryIndicator
             stateBadge
             settingsButton
         }
@@ -114,6 +118,7 @@ struct StatusBarView: View {
         HStack {
             measuredWeightDisplay
             Spacer()
+            batteryIndicator
             stateBadge
             settingsButton
         }
@@ -250,6 +255,13 @@ struct StatusBarView: View {
         }
     }
 
+    @ViewBuilder
+    private var batteryIndicator: some View {
+        if let batteryLevel {
+            BatteryBadge(level: batteryLevel, color: secondaryTextColor, font: .caption)
+        }
+    }
+
     private var stateBadge: some View {
         Text(reconnecting ? "RECONNECTING..." : state.stateText)
             .font(.caption)
@@ -290,6 +302,23 @@ struct StatusBarView: View {
         weightMedian: 20.0,
         targetWeight: 20.0,
         useLbs: false,
+        onUnitToggle: {},
+        onSettingsTap: {}
+    )
+}
+
+#Preview("Idle with battery") {
+    StatusBarView(
+        force: 2.1,
+        engaged: false,
+        calibrating: false,
+        waitingForSamples: false,
+        calibrationTimeRemaining: 0,
+        weightMedian: 20.0,
+        targetWeight: 20.0,
+        useLbs: false,
+        expanded: true,
+        batteryLevel: 76,
         onUnitToggle: {},
         onSettingsTap: {}
     )

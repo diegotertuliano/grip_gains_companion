@@ -8,6 +8,7 @@ struct ForceGraphView: View {
     let windowSeconds: Int  // 0 = entire session
     let targetWeight: Double?
     let tolerance: Double?  // Optional tolerance in same units as targetWeight (kg)
+    var batteryLevel: Int? = nil  // Shown in the corner when the status bar is hidden
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -109,7 +110,14 @@ struct ForceGraphView: View {
         .chartXAxis(.hidden)
         .chartXScale(domain: 0.0...1.0)
         .chartPlotStyle { plotArea in
-            plotArea.clipped()
+            plotArea
+                .clipped()
+                .overlay(alignment: .topLeading) {
+                    if let batteryLevel {
+                        BatteryBadge(level: batteryLevel, showsBackground: true)
+                            .padding(4)
+                    }
+                }
         }
         .chartYAxis {
             AxisMarks(position: .leading) { value in
@@ -179,7 +187,24 @@ struct ForceGraphView: View {
         useLbs: false,
         windowSeconds: 10,
         targetWeight: 20,
-        tolerance: 0.5
+        tolerance: 0.5,
+        batteryLevel: 76
+    )
+}
+
+#Preview("Low battery") {
+    let now = Date()
+    let history: [(timestamp: Date, force: Double)] = (0..<100).map { i in
+        (timestamp: now.addingTimeInterval(Double(i) * 0.1 - 10),
+         force: 20 + Double.random(in: -2...2))
+    }
+    return ForceGraphView(
+        forceHistory: history,
+        useLbs: false,
+        windowSeconds: 10,
+        targetWeight: 20,
+        tolerance: 0.5,
+        batteryLevel: 12
     )
 }
 

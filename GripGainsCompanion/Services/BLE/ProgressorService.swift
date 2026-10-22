@@ -6,6 +6,11 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
     private var notifyCharacteristic: CBCharacteristic?
     private var writeCharacteristic: CBCharacteristic?
     private var discoveryTimer: Timer?
+    private var notificationsReady = false
+    private var didStartMeasurement = false
+    private var awaitingBatteryResponse = false
+    /// Kinds of in-flight writes with response; acks arrive in write order.
+    private var pendingWriteIsBatteryQuery: [Bool] = []
 
     /// Callback when force samples are received (force value, timestamp in microseconds)
     var onForceSample: ((Double, UInt32) -> Void)?
@@ -15,6 +20,9 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
 
     /// Callback fired on successful write to the control point (one-shot consumers should re-set)
     var onWriteComplete: (() -> Void)?
+
+    /// Callback with the estimated battery percentage (0–100)
+    var onBatteryLevel: ((Int) -> Void)?
 
     init(peripheral: CBPeripheral) {
         self.peripheral = peripheral
@@ -57,7 +65,18 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             return
         }
         Log.ble.info("Sending start weight command...")
-        peripheral.writeValue(AppConstants.progressorStartWeightCommand, for: writeChar, type: .withResponse)
+        write(AppConstants.progressorStartWeightCommand, to: writeChar, type: .withResponse)
+    }
+
+    /// Request the battery voltage (0x6F). The reply arrives as a command-response notification.
+    func requestBatteryVoltage() {
+        guard let writeChar = writeCharacteristic else {
+            Log.ble.error("Write characteristic not available for battery query")
+            return
+        }
+        Log.ble.info("Sending Progressor battery voltage command (0x6F)")
+        awaitingBatteryResponse = true
+        write(AppConstants.progressorGetBatteryVoltageCommand, to: writeChar, type: .withResponse, isBatteryQuery: true)
     }
 
     /// Send the tare command to zero the scale (no load should be applied)
@@ -67,7 +86,7 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             return
         }
         Log.ble.info("Sending Progressor tare command (0x64)")
-        peripheral.writeValue(AppConstants.progressorTareCommand, for: writeChar, type: writeType)
+        write(AppConstants.progressorTareCommand, to: writeChar, type: writeType)
     }
 
     /// Send the shutdown (sleep) command to power off the device
@@ -77,7 +96,24 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             return
         }
         Log.ble.info("Sending Progressor shutdown command (0x6E)")
-        peripheral.writeValue(AppConstants.progressorShutdownCommand, for: writeChar, type: writeType)
+        write(AppConstants.progressorShutdownCommand, to: writeChar, type: writeType)
+    }
+
+    private func write(_ data: Data, to characteristic: CBCharacteristic,
+                       type: CBCharacteristicWriteType, isBatteryQuery: Bool = false) {
+        if type == .withResponse {
+            pendingWriteIsBatteryQuery.append(isBatteryQuery)
+        }
+        peripheral.writeValue(data, for: characteristic, type: type)
+    }
+
+    /// Once notifications are on (so the battery reply isn't missed), query the battery
+    /// and then start measuring. The query goes first so it never interrupts a live stream.
+    private func startMeasurementIfReady() {
+        guard notificationsReady, writeCharacteristic != nil, !didStartMeasurement else { return }
+        didStartMeasurement = true
+        requestBatteryVoltage()
+        startWeightMeasurement()
     }
 
     // MARK: - CBPeripheralDelegate
@@ -131,13 +167,13 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             case AppConstants.progressorWriteCharacteristicUUID:
                 Log.ble.info("Found write characteristic")
                 writeCharacteristic = characteristic
-                // Start weight measurement once we have the write characteristic
-                startWeightMeasurement()
 
             default:
                 break
             }
         }
+
+        startMeasurementIfReady()
     }
 
     func peripheral(_ peripheral: CBPeripheral,
@@ -159,6 +195,14 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral,
                     didWriteValueFor characteristic: CBCharacteristic,
                     error: Error?) {
+        let wasBatteryQuery = pendingWriteIsBatteryQuery.isEmpty ? false : pendingWriteIsBatteryQuery.removeFirst()
+        if wasBatteryQuery {
+            if let error {
+                Log.ble.error("Writing battery query: \(error.localizedDescription)")
+                awaitingBatteryResponse = false
+            }
+            return
+        }
         if let error = error {
             Log.ble.error("Writing to characteristic: \(error.localizedDescription)")
             return
@@ -180,6 +224,10 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
         if characteristic.isNotifying {
             cancelDiscoveryTimeout()
         }
+
+        guard characteristic.uuid == AppConstants.progressorNotifyCharacteristicUUID else { return }
+        notificationsReady = characteristic.isNotifying
+        startMeasurementIfReady()
     }
 
     // MARK: - Data Parsing
@@ -187,6 +235,14 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
     /// Parse incoming BLE notification data
     /// Tindeq batches ~16 samples per notification, each with weight + timestamp
     private func parseNotification(_ data: Data) {
+        if awaitingBatteryResponse, let millivolts = DeviceBattery.progressorMillivolts(fromResponse: data) {
+            awaitingBatteryResponse = false
+            let percent = DeviceBattery.percent(fromLithiumMillivolts: millivolts)
+            Log.ble.info("Progressor battery: \(millivolts) mV (~\(percent)%)")
+            onBatteryLevel?(percent)
+            return
+        }
+
         // Verify packet type and minimum size
         guard data.count >= ProgressorProtocol.packetMinSize,
               data[0] == ProgressorProtocol.weightDataPacketType else {

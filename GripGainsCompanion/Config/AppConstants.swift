@@ -103,6 +103,7 @@ struct AppConstants {
     static let progressorStartWeightCommand = Data([101])
     static let progressorTareCommand = Data([0x64])
     static let progressorShutdownCommand = Data([0x6E])
+    static let progressorGetBatteryVoltageCommand = Data([0x6F])
     static let pitchSixStartStreamingCommand = Data([0x04])
     static let pitchSixTareCommand = Data([0x05])
     static let pitchSixStopCommand = Data([0x07])
@@ -145,6 +146,7 @@ enum SignalThreshold {
 
 // MARK: - Progressor BLE Protocol
 enum ProgressorProtocol {
+    static let commandResponsePacketType: UInt8 = 0
     static let weightDataPacketType: UInt8 = 1
     static let packetMinSize: Int = 6
     static let floatDataStart: Int = 2

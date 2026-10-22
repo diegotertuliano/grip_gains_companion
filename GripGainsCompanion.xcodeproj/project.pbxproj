@@ -77,6 +77,9 @@
 		F2E200000000000000000001 /* FrezAccessKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000002 /* FrezAccessKeyStore.swift */; };
 		F2E200000000000000000011 /* FrezCoefficientClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000012 /* FrezCoefficientClient.swift */; };
 		F2E200000000000000000021 /* FrezMeasurement.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000022 /* FrezMeasurement.swift */; };
+		BA77E2000000000000000001 /* DeviceBattery.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA77E2000000000000000002 /* DeviceBattery.swift */; };
+		BA77E2000000000000000003 /* DeviceBatteryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA77E2000000000000000004 /* DeviceBatteryTests.swift */; };
+		BA77E2000000000000000005 /* BatteryBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA77E2000000000000000006 /* BatteryBadge.swift */; };
 		F2E200000000000000000031 /* FrezDynoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000032 /* FrezDynoService.swift */; };
 		F2E200000000000000000041 /* FrezAccessKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000042 /* FrezAccessKeyView.swift */; };
 		F2E200000000000000000051 /* FrezTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E200000000000000000052 /* FrezTests.swift */; };
@@ -188,6 +191,9 @@
 		F2E200000000000000000002 /* FrezAccessKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezAccessKeyStore.swift; sourceTree = "<group>"; };
 		F2E200000000000000000012 /* FrezCoefficientClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezCoefficientClient.swift; sourceTree = "<group>"; };
 		F2E200000000000000000022 /* FrezMeasurement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezMeasurement.swift; sourceTree = "<group>"; };
+		BA77E2000000000000000002 /* DeviceBattery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceBattery.swift; sourceTree = "<group>"; };
+		BA77E2000000000000000004 /* DeviceBatteryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceBatteryTests.swift; sourceTree = "<group>"; };
+		BA77E2000000000000000006 /* BatteryBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryBadge.swift; sourceTree = "<group>"; };
 		F2E200000000000000000032 /* FrezDynoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezDynoService.swift; sourceTree = "<group>"; };
 		F2E200000000000000000042 /* FrezAccessKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezAccessKeyView.swift; sourceTree = "<group>"; };
 		F2E200000000000000000052 /* FrezTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrezTests.swift; sourceTree = "<group>"; };
@@ -328,6 +334,7 @@
 				EE9A504DD4A899B6E7317493 /* RepStatisticsView.swift */,
 				614D9441976105B809189772 /* ShareableRepView.swift */,
 				4599C9DEBDE2BFEFDB0C3755 /* ShareableSetSummaryView.swift */,
+				BA77E2000000000000000006 /* BatteryBadge.swift */,
 				A1CCBE13211E2CABD20D21DD /* History */,
 			);
 			path = Views;
@@ -336,6 +343,7 @@
 		307 /* BLE */ = {
 			isa = PBXGroup;
 			children = (
+				BA77E2000000000000000002 /* DeviceBattery.swift */,
 				F2E200000000000000000032 /* FrezDynoService.swift */,
 				F2E200000000000000000022 /* FrezMeasurement.swift */,
 				107 /* BluetoothManager.swift */,
@@ -414,6 +422,7 @@
 		T300 /* GripGainsCompanionTests */ = {
 			isa = PBXGroup;
 			children = (
+				BA77E2000000000000000004 /* DeviceBatteryTests.swift */,
 				F2E200000000000000000052 /* FrezTests.swift */,
 				C01100000000000000000008 /* ReadingCorrectionTests.swift */,
 				7E5D1A112EF966DA001C3436 /* BluetoothManagerTests.swift */,
@@ -566,6 +575,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F2E200000000000000000041 /* FrezAccessKeyView.swift in Sources */,
+				BA77E2000000000000000001 /* DeviceBattery.swift in Sources */,
+				BA77E2000000000000000005 /* BatteryBadge.swift in Sources */,
 				F2E200000000000000000031 /* FrezDynoService.swift in Sources */,
 				F2E200000000000000000021 /* FrezMeasurement.swift in Sources */,
 				F2E200000000000000000011 /* FrezCoefficientClient.swift in Sources */,
@@ -634,6 +645,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA77E2000000000000000003 /* DeviceBatteryTests.swift in Sources */,
 				F2E200000000000000000051 /* FrezTests.swift in Sources */,
 				C01100000000000000000007 /* ReadingCorrectionTests.swift in Sources */,
 				T001 /* WeightFormatterTests.swift in Sources */,

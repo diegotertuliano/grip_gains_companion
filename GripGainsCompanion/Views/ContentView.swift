@@ -372,7 +372,8 @@ struct ContentView: View {
             useLbs: useLbs,
             windowSeconds: forceGraphWindow,
             targetWeight: effectiveTargetWeight,
-            tolerance: effectiveWeightTolerance
+            tolerance: effectiveWeightTolerance,
+            batteryLevel: showStatusBar ? nil : bluetoothManager.deviceBatteryLevel
         )
     }
 
@@ -723,6 +724,7 @@ struct ContentView: View {
             prominentStats: prominentGripStats,
             deviceShortName: bluetoothManager.selectedDeviceType.shortName,
             reconnecting: bluetoothManager.isReconnecting,
+            batteryLevel: bluetoothManager.deviceBatteryLevel,
             onUnitToggle: { useLbs.toggle() },
             onSettingsTap: { showSettings = true }
         )

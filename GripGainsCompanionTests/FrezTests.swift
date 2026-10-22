@@ -252,6 +252,17 @@ final class FrezTests: XCTestCase {
     }
 
     @MainActor
+    func testBatteryLevelIsReportedAndOutOfRangeValuesIgnored() {
+        let (service, _) = configuredService(provider: FrezStubCoefficients())
+        defer { service.invalidate() }
+        var levels: [Int] = []
+        service.onBatteryLevel = { levels.append($0) }
+        service.receivedValue(Data([87]), for: FrezGATT.battery)
+        service.receivedValue(Data([101]), for: FrezGATT.battery)
+        XCTAssertEqual(levels, [87])
+    }
+
+    @MainActor
     func testRejectedAccessDoesNotSubscribeStartOrRetry() async {
         let provider = FrezStubCoefficients()
         provider.failure = .invalidKey
