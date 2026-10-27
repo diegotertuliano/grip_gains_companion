@@ -163,6 +163,7 @@ struct ContentView: View {
     @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
     @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
     @AppStorage("enableWebsiteSounds") private var enableWebsiteSounds = AppConstants.defaultEnableWebsiteSounds
+    @AppStorage("disableSubtract2s") private var disableSubtract2s = AppConstants.defaultDisableSubtract2s
     @AppStorage("showStatusBar") private var showStatusBar = AppConstants.defaultShowStatusBar
     @AppStorage("expandedForceBar") private var expandedForceBar = AppConstants.defaultExpandedForceBar
     @AppStorage("showForceGraph") private var showForceGraph = AppConstants.defaultShowForceGraph
@@ -843,6 +844,7 @@ struct ContentView: View {
         // Apply the saved web-audio mute state on launch (handles the app starting with the
         // setting already off; didFinish reapplies after navigation once this is set).
         webCoordinator.setWebsiteAudioMuted(!enableWebsiteSounds)
+        webCoordinator.setDisableSubtract2s(disableSubtract2s)
 
         // WebView button state
         var lastReportedButtonState = isFailButtonEnabled

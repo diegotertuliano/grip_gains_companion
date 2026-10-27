@@ -50,6 +50,7 @@ struct AppConstants {
     static let defaultEnableTargetSound: Bool = true
     static let defaultEnableTimerCountdownSound: Bool = true
     static let defaultEnableWebsiteSounds: Bool = true
+    static let defaultDisableSubtract2s: Bool = true
     static let defaultShowGripStats: Bool = true
     static let defaultProminentGripStats: Bool = false
     static let defaultShowSetReview: Bool = false

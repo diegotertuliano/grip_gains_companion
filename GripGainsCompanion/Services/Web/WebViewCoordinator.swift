@@ -54,6 +54,9 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
     /// Whether gripgains.ca's own (Web Audio) sounds are currently muted
     var websiteAudioMuted = false
 
+    /// Whether to turn off gripgains.ca's "Subtract 2s" switch before each set
+    private(set) var disableSubtract2s = false
+
     private var initialPageURL: URL?
     private var initialNavigation: WKNavigation?
     private var checkingMissingWorkout = false
@@ -230,6 +233,11 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
             if websiteAudioMuted {
                 _ = try? await webView.evaluateJavaScript(JavaScriptBridge.websiteAudioMuteScript)
                 _ = try? await webView.evaluateJavaScript(JavaScriptBridge.setWebsiteAudioMuted(true))
+            }
+
+            // A fresh page starts with the Subtract 2s observer inert; re-enable it if set.
+            if disableSubtract2s {
+                _ = try? await webView.evaluateJavaScript(JavaScriptBridge.setDisableSubtract2s(true))
             }
         }
     }
@@ -479,6 +487,14 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
                 _ = try? await webView?.evaluateJavaScript(JavaScriptBridge.websiteAudioMuteScript)
             }
             _ = try? await webView?.evaluateJavaScript(JavaScriptBridge.setWebsiteAudioMuted(muted))
+        }
+    }
+
+    /// Enable or disable automatically turning off the timer page's "Subtract 2s" switch.
+    func setDisableSubtract2s(_ disabled: Bool) {
+        disableSubtract2s = disabled
+        Task { @MainActor in
+            _ = try? await webView?.evaluateJavaScript(JavaScriptBridge.setDisableSubtract2s(disabled))
         }
     }
 

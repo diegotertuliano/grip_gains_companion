@@ -93,6 +93,7 @@ struct SettingsView: View {
     @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
     @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
     @AppStorage("enableWebsiteSounds") private var enableWebsiteSounds = AppConstants.defaultEnableWebsiteSounds
+    @AppStorage("disableSubtract2s") private var disableSubtract2s = AppConstants.defaultDisableSubtract2s
     @AppStorage("showGripStats") private var showGripStats = AppConstants.defaultShowGripStats
     @AppStorage("prominentGripStats") private var prominentGripStats = AppConstants.defaultProminentGripStats
     @AppStorage("showSetReview") private var showSetReview = AppConstants.defaultShowSetReview
@@ -281,6 +282,8 @@ struct SettingsView: View {
 
                 // Website section
                 Section("Website") {
+                    Toggle("Disable 2s Subtraction", isOn: $disableSubtract2s)
+
                     Button {
                         webCoordinator.reloadPage()
                         dismiss()
@@ -705,6 +708,9 @@ struct SettingsView: View {
             // toggle change reliably fires — ContentView's matching onChange sits behind this
             // sheet and isn't a dependable trigger.
             webCoordinator.setWebsiteAudioMuted(!enabled)
+        }
+        .onChange(of: disableSubtract2s) { _, disabled in
+            webCoordinator.setDisableSubtract2s(disabled)
         }
         } // NavigationStack
         .sheet(isPresented: $showHistorySheet) {

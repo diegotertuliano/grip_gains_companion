@@ -70,6 +70,7 @@
 		T003 /* WebViewCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T103 /* WebViewCoordinatorTests.swift */; };
 		T004 /* StatisticsUtilitiesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T104 /* StatisticsUtilitiesTests.swift */; };
 		T005 /* RepResultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T105 /* RepResultTests.swift */; };
+		BA77E2000000000000000007 /* Subtract2sScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA77E2000000000000000008 /* Subtract2sScriptTests.swift */; };
 		T006 /* ObserverScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T106 /* ObserverScriptTests.swift */; };
 		C01100000000000000000001 /* ReadingCorrection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01100000000000000000002 /* ReadingCorrection.swift */; };
 		C01100000000000000000003 /* ReadingCorrectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01100000000000000000004 /* ReadingCorrectionStore.swift */; };
@@ -185,6 +186,7 @@
 		T103 /* WebViewCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewCoordinatorTests.swift; sourceTree = "<group>"; };
 		T104 /* StatisticsUtilitiesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsUtilitiesTests.swift; sourceTree = "<group>"; };
 		T105 /* RepResultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepResultTests.swift; sourceTree = "<group>"; };
+		BA77E2000000000000000008 /* Subtract2sScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subtract2sScriptTests.swift; sourceTree = "<group>"; };
 		T106 /* ObserverScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObserverScriptTests.swift; sourceTree = "<group>"; };
 		C01100000000000000000002 /* ReadingCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingCorrection.swift; sourceTree = "<group>"; };
 		C01100000000000000000004 /* ReadingCorrectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingCorrectionStore.swift; sourceTree = "<group>"; };
@@ -439,6 +441,7 @@
 				T104 /* StatisticsUtilitiesTests.swift */,
 				T105 /* RepResultTests.swift */,
 				T106 /* ObserverScriptTests.swift */,
+				BA77E2000000000000000008 /* Subtract2sScriptTests.swift */,
 				5F000000000000000000000A /* ForceChartDataSourceTests.swift */,
 				19ED7827705CFFA20EDCBE36 /* SetStatisticsTests.swift */,
 			);
@@ -664,6 +667,7 @@
 				C7A500000000000000000003 /* CTS500ServiceTests.swift in Sources */,
 				533C865FA85F1BA6AFC324D2 /* SetStatisticsTests.swift in Sources */,
 				T006 /* ObserverScriptTests.swift in Sources */,
+				BA77E2000000000000000007 /* Subtract2sScriptTests.swift in Sources */,
 				5F000000000000000000000B /* ForceChartDataSourceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

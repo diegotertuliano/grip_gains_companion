@@ -236,6 +236,73 @@ enum JavaScriptBridge {
         "if (window.__ggSetAudioMuted) { window.__ggSetAudioMuted(\(muted)); }"
     }
 
+    /// Watches for the pre-set "Subtract 2s" switch and turns it off while the app's
+    /// "Disable 2s Subtraction" setting is on. Inert until enabled via `setDisableSubtract2s`.
+    /// Only clicks when the switch reports `aria-pressed="true"`, so it can never turn it on.
+    static let subtract2sObserverScript = """
+        (function() {
+            if (window.__ggSubtract2sInstalled) return;
+            window.__ggSubtract2sInstalled = true;
+
+            let active = false;
+            // Give the page time to re-render after a click, and stop after a few clicks
+            // that don't take, so a page change can never cause a click loop.
+            let lastClick = 0;
+            let attempts = 0;
+            const cooldownMs = 1000;
+            const maxAttempts = 3;
+
+            function findToggle() {
+                const byLabel = document.querySelector('button[aria-label="Toggle 2 second timer delay"]');
+                if (byLabel) return byLabel;
+                return Array.from(document.querySelectorAll('.timer-controls button'))
+                    .find(function(b) { return /subtract\\s*2\\s*s/i.test(b.textContent); }) || null;
+            }
+
+            function check() {
+                if (!active) return;
+                const toggle = findToggle();
+                if (!toggle) return;
+                const pressed = toggle.getAttribute('aria-pressed');
+                if (pressed === 'false') { attempts = 0; return; }
+                if (pressed !== 'true') return;
+                const now = Date.now();
+                if (now - lastClick < cooldownMs || attempts >= maxAttempts) return;
+                lastClick = now;
+                attempts += 1;
+                toggle.click();
+                // Re-check after the cooldown in case the click didn't take and nothing else changes.
+                setTimeout(check, cooldownMs + 50);
+            }
+
+            window.__ggSetDisableSubtract2s = function(value) {
+                active = !!value;
+                attempts = 0;
+                check();
+            };
+
+            function start() {
+                new MutationObserver(check).observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['aria-pressed']
+                });
+                check();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', start);
+            } else {
+                start();
+            }
+        })();
+    """
+
+    static func setDisableSubtract2s(_ disabled: Bool) -> String {
+        "if (window.__ggSetDisableSubtract2s) { window.__ggSetDisableSubtract2s(\(disabled)); }"
+    }
+
     /// Click the fail button
     static let clickFailButton = """
         (function() {

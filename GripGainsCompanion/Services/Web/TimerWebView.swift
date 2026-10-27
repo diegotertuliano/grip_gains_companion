@@ -100,6 +100,14 @@ struct TimerWebView: UIViewRepresentable {
         )
         contentController.addUserScript(saveButtonScript)
 
+        // Inject "Subtract 2s" switch observer (inert until the setting enables it)
+        let subtract2sScript = WKUserScript(
+            source: JavaScriptBridge.subtract2sObserverScript,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(subtract2sScript)
+
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = coordinator
         coordinator.setWebView(webView)
