@@ -94,6 +94,8 @@ struct SettingsView: View {
     @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
     @AppStorage("enableWebsiteSounds") private var enableWebsiteSounds = AppConstants.defaultEnableWebsiteSounds
     @AppStorage("disableSubtract2s") private var disableSubtract2s = AppConstants.defaultDisableSubtract2s
+    @AppStorage("enforceRestBetweenReps") private var enforceRestBetweenReps = AppConstants.defaultEnforceRestBetweenReps
+    @AppStorage("restBetweenRepsSeconds") private var restBetweenRepsSeconds = AppConstants.defaultRestBetweenRepsSeconds
     @AppStorage("showGripStats") private var showGripStats = AppConstants.defaultShowGripStats
     @AppStorage("prominentGripStats") private var prominentGripStats = AppConstants.defaultProminentGripStats
     @AppStorage("showSetReview") private var showSetReview = AppConstants.defaultShowSetReview
@@ -281,8 +283,16 @@ struct SettingsView: View {
                 }
 
                 // Website section
-                Section("Website") {
+                Section {
                     Toggle("Disable 2s Subtraction", isOn: $disableSubtract2s)
+                    Toggle("Enforce Rest Between Reps", isOn: $enforceRestBetweenReps)
+                    if enforceRestBetweenReps {
+                        Picker("Rest Between Reps", selection: $restBetweenRepsSeconds) {
+                            ForEach(AppConstants.restBetweenRepsOptions, id: \.self) { seconds in
+                                Text("\(seconds)s").tag(seconds)
+                            }
+                        }
+                    }
 
                     Button {
                         webCoordinator.reloadPage()
@@ -302,6 +312,12 @@ struct SettingsView: View {
                             Image(systemName: "trash")
                             Text("Clear Website Data")
                         }
+                    }
+                } header: {
+                    Text("Website")
+                } footer: {
+                    if enforceRestBetweenReps {
+                        Text("Keeps the timer's Advanced Settings \"Rest\" slider at this value, setting it back whenever the page changes it. Best effort: it can't change rest while a set is running or when the page locks the slider.")
                     }
                 }
 
@@ -712,6 +728,8 @@ struct SettingsView: View {
         .onChange(of: disableSubtract2s) { _, disabled in
             webCoordinator.setDisableSubtract2s(disabled)
         }
+        .onChange(of: enforceRestBetweenReps) { _, _ in applyEnforcedRest() }
+        .onChange(of: restBetweenRepsSeconds) { _, _ in applyEnforcedRest() }
         } // NavigationStack
         .sheet(isPresented: $showHistorySheet) {
             SessionHistorySheet()
@@ -800,6 +818,12 @@ struct SettingsView: View {
         initializeWheelPickers()
         let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
         manualTargetText = String(format: "%.2f", displayValue)
+    }
+
+    /// Push the rest-between-reps setting to the page. Driven from the sheet, like the
+    /// website-sounds toggle, because ContentView's onChange isn't dependable behind it.
+    private func applyEnforcedRest() {
+        webCoordinator.setEnforcedRest(enforceRestBetweenReps ? restBetweenRepsSeconds : nil)
     }
 
     /// Sync wheel picker values back to manualTargetWeight (stored in kg)
