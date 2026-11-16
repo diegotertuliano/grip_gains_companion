@@ -57,6 +57,9 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
     /// Whether to turn off gripgains.ca's "Subtract 2s" switch before each set
     private(set) var disableSubtract2s = false
 
+    /// Rest between reps (seconds) to keep the timer page's "Rest" slider at; nil = don't enforce
+    private(set) var enforcedRestSeconds: Int?
+
     private var initialPageURL: URL?
     private var initialNavigation: WKNavigation?
     private var checkingMissingWorkout = false
@@ -238,6 +241,11 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
             // A fresh page starts with the Subtract 2s observer inert; re-enable it if set.
             if disableSubtract2s {
                 _ = try? await webView.evaluateJavaScript(JavaScriptBridge.setDisableSubtract2s(true))
+            }
+
+            // A fresh page starts with the rest enforcer inert; re-enable it if set.
+            if let enforcedRestSeconds {
+                _ = try? await webView.evaluateJavaScript(JavaScriptBridge.setEnforcedRest(enforcedRestSeconds))
             }
         }
     }
@@ -495,6 +503,14 @@ class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WK
         disableSubtract2s = disabled
         Task { @MainActor in
             _ = try? await webView?.evaluateJavaScript(JavaScriptBridge.setDisableSubtract2s(disabled))
+        }
+    }
+
+    /// Keep the timer page's "Rest" slider at `seconds`, or stop enforcing with nil.
+    func setEnforcedRest(_ seconds: Int?) {
+        enforcedRestSeconds = seconds
+        Task { @MainActor in
+            _ = try? await webView?.evaluateJavaScript(JavaScriptBridge.setEnforcedRest(seconds))
         }
     }
 

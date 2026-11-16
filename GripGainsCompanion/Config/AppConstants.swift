@@ -51,6 +51,10 @@ struct AppConstants {
     static let defaultEnableTimerCountdownSound: Bool = true
     static let defaultEnableWebsiteSounds: Bool = true
     static let defaultDisableSubtract2s: Bool = true
+    static let defaultEnforceRestBetweenReps: Bool = true
+    static let defaultRestBetweenRepsSeconds: Int = 20
+    /// Values gripgains.ca's "Rest" slider allows (min 20, max 60, step 10)
+    static let restBetweenRepsOptions: [Int] = [20, 30, 40, 50, 60]
     static let defaultShowGripStats: Bool = true
     static let defaultProminentGripStats: Bool = false
     static let defaultShowSetReview: Bool = false
