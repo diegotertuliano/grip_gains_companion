@@ -72,6 +72,7 @@
 		T005 /* RepResultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T105 /* RepResultTests.swift */; };
 		BA77E2000000000000000007 /* Subtract2sScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA77E2000000000000000008 /* Subtract2sScriptTests.swift */; };
 		T006 /* ObserverScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T106 /* ObserverScriptTests.swift */; };
+		E7E5000000000000000000A1 /* EnforceRestScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E5000000000000000000A2 /* EnforceRestScriptTests.swift */; };
 		C01100000000000000000001 /* ReadingCorrection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01100000000000000000002 /* ReadingCorrection.swift */; };
 		C01100000000000000000003 /* ReadingCorrectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01100000000000000000004 /* ReadingCorrectionStore.swift */; };
 		C01100000000000000000005 /* AdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01100000000000000000006 /* AdvancedSettingsView.swift */; };
@@ -188,6 +189,7 @@
 		T105 /* RepResultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepResultTests.swift; sourceTree = "<group>"; };
 		BA77E2000000000000000008 /* Subtract2sScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subtract2sScriptTests.swift; sourceTree = "<group>"; };
 		T106 /* ObserverScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObserverScriptTests.swift; sourceTree = "<group>"; };
+		E7E5000000000000000000A2 /* EnforceRestScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnforceRestScriptTests.swift; sourceTree = "<group>"; };
 		C01100000000000000000002 /* ReadingCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingCorrection.swift; sourceTree = "<group>"; };
 		C01100000000000000000004 /* ReadingCorrectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingCorrectionStore.swift; sourceTree = "<group>"; };
 		C01100000000000000000006 /* AdvancedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettingsView.swift; sourceTree = "<group>"; };
@@ -442,6 +444,7 @@
 				T105 /* RepResultTests.swift */,
 				T106 /* ObserverScriptTests.swift */,
 				BA77E2000000000000000008 /* Subtract2sScriptTests.swift */,
+				E7E5000000000000000000A2 /* EnforceRestScriptTests.swift */,
 				5F000000000000000000000A /* ForceChartDataSourceTests.swift */,
 				19ED7827705CFFA20EDCBE36 /* SetStatisticsTests.swift */,
 			);
@@ -668,6 +671,7 @@
 				533C865FA85F1BA6AFC324D2 /* SetStatisticsTests.swift in Sources */,
 				T006 /* ObserverScriptTests.swift in Sources */,
 				BA77E2000000000000000007 /* Subtract2sScriptTests.swift in Sources */,
+				E7E5000000000000000000A1 /* EnforceRestScriptTests.swift in Sources */,
 				5F000000000000000000000B /* ForceChartDataSourceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

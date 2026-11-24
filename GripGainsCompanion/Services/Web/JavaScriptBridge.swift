@@ -303,6 +303,87 @@ enum JavaScriptBridge {
         "if (window.__ggSetDisableSubtract2s) { window.__ggSetDisableSubtract2s(\(disabled)); }"
     }
 
+    /// Watches gripgains.ca's "Rest" slider (Advanced Settings) and sets it to the app's
+    /// "Rest Between Reps" value whenever the page changes it (presets, loaded workouts, etc.).
+    /// Inert until enabled via `setEnforcedRest`. Best effort: it never touches the slider
+    /// while the page has it disabled (set running, Active Recovery), and backs off after a
+    /// few changes that don't take.
+    static let enforceRestObserverScript = """
+        (function() {
+            if (window.__ggEnforceRestInstalled) return;
+            window.__ggEnforceRestInstalled = true;
+
+            let target = null;
+            // Give Vue time to re-render after a change, and stop after a few changes that
+            // don't take, so a page that fights back can never cause a loop.
+            let lastSet = 0;
+            let attempts = 0;
+            const cooldownMs = 250;
+            const maxAttempts = 3;
+
+            function findSlider() {
+                const labels = document.querySelectorAll('.slider-label');
+                for (const label of labels) {
+                    if (label.textContent.trim().toLowerCase() !== 'rest') continue;
+                    const item = label.closest('.slider-item') ||
+                        (label.parentElement && label.parentElement.parentElement);
+                    const input = item && item.querySelector('input[type="range"]');
+                    if (input) return input;
+                }
+                return document.querySelector('input[type="range"][min="20"][max="60"]');
+            }
+
+            function check() {
+                if (target === null) return;
+                const slider = findSlider();
+                if (!slider) return;
+                if (Number(slider.value) === target) { attempts = 0; return; }
+                if (slider.disabled) return;
+                const now = Date.now();
+                if (now - lastSet < cooldownMs || attempts >= maxAttempts) return;
+                lastSet = now;
+                attempts += 1;
+                slider.value = String(target);
+                // v-model on a range input listens for 'input'
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+                slider.dispatchEvent(new Event('change', { bubbles: true }));
+                // Re-check after the cooldown in case the change didn't take and nothing else changes.
+                setTimeout(check, cooldownMs + 50);
+            }
+
+            window.__ggSetEnforcedRest = function(seconds) {
+                target = (typeof seconds === 'number' && isFinite(seconds)) ? seconds : null;
+                attempts = 0;
+                check();
+            };
+
+            function start() {
+                // Observe document.body so this survives Vue re-rendering the settings panel.
+                // The value label's text changes whenever the page changes the rest value.
+                new MutationObserver(check).observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                    attributes: true,
+                    attributeFilter: ['disabled']
+                });
+                check();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', start);
+            } else {
+                start();
+            }
+        })();
+    """
+
+    /// Pass nil to stop enforcing.
+    static func setEnforcedRest(_ seconds: Int?) -> String {
+        let value = seconds.map(String.init) ?? "null"
+        return "if (window.__ggSetEnforcedRest) { window.__ggSetEnforcedRest(\(value)); }"
+    }
+
     /// Click the fail button
     static let clickFailButton = """
         (function() {

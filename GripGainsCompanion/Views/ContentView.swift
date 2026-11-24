@@ -164,6 +164,8 @@ struct ContentView: View {
     @AppStorage("enableTimerCountdownSound") private var enableTimerCountdownSound = AppConstants.defaultEnableTimerCountdownSound
     @AppStorage("enableWebsiteSounds") private var enableWebsiteSounds = AppConstants.defaultEnableWebsiteSounds
     @AppStorage("disableSubtract2s") private var disableSubtract2s = AppConstants.defaultDisableSubtract2s
+    @AppStorage("enforceRestBetweenReps") private var enforceRestBetweenReps = AppConstants.defaultEnforceRestBetweenReps
+    @AppStorage("restBetweenRepsSeconds") private var restBetweenRepsSeconds = AppConstants.defaultRestBetweenRepsSeconds
     @AppStorage("showStatusBar") private var showStatusBar = AppConstants.defaultShowStatusBar
     @AppStorage("expandedForceBar") private var expandedForceBar = AppConstants.defaultExpandedForceBar
     @AppStorage("showForceGraph") private var showForceGraph = AppConstants.defaultShowForceGraph
@@ -845,6 +847,7 @@ struct ContentView: View {
         // setting already off; didFinish reapplies after navigation once this is set).
         webCoordinator.setWebsiteAudioMuted(!enableWebsiteSounds)
         webCoordinator.setDisableSubtract2s(disableSubtract2s)
+        webCoordinator.setEnforcedRest(enforceRestBetweenReps ? restBetweenRepsSeconds : nil)
 
         // WebView button state
         var lastReportedButtonState = isFailButtonEnabled

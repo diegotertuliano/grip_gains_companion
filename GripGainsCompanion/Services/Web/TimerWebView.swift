@@ -108,6 +108,14 @@ struct TimerWebView: UIViewRepresentable {
         )
         contentController.addUserScript(subtract2sScript)
 
+        // Inject rest-between-reps enforcer (inert until the setting enables it)
+        let enforceRestScript = WKUserScript(
+            source: JavaScriptBridge.enforceRestObserverScript,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(enforceRestScript)
+
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = coordinator
         coordinator.setWebView(webView)
